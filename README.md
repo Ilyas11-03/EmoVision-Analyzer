@@ -1,7 +1,9 @@
 # EmoVision-Analyzer 🎭📹
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+## 📦 Prérequis
+
+- **Python 3.11**  
+Téléchargez les sources depuis le [site officiel Python](https://www.python.org/downloads/source/
 
 Un système d'analyse vidéo par IA pour détecter les émotions et le stress à partir de flux vidéo en temps réel ou de fichiers pré-enregistrés.
 
@@ -10,7 +12,14 @@ Un système d'analyse vidéo par IA pour détecter les émotions et le stress à
 - 🎭 Détection de 7 émotions de base (colère, dégoût, peur, joie, tristesse, surprise, neutre)
 - 📊 Analyse du niveau de stress via micro-expressions
 - 📄 Génération de rapports PDF/JSON
-- 🖥️ Interface simple en ligne de commande ou API REST
+- 📊 Visualisation des Résultats
+
+Le système génère automatiquement des graphiques d'analyse émotionnelle :
+
+### Graphique Temporel des Émotions
+![Exemple de graphique émotionnel]
+![image](https://github.com/user-attachments/assets/105539d4-d127-4173-8fe6-e316d2ca9973)
+
 
 ## Prérequis
 
