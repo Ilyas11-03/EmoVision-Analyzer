@@ -20,12 +20,6 @@ Le système génère automatiquement des graphiques d'analyse émotionnelle :
 ![Exemple de graphique émotionnel]
 ![image](https://github.com/user-attachments/assets/105539d4-d127-4173-8fe6-e316d2ca9973)
 
-
-## Prérequis
-
-- Python 3.8+
-- Git (pour le clonage)
-
 ## Installation
 
 1. Clonez le dépôt :
