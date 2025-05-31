@@ -3,7 +3,7 @@
 ## 📦 Prérequis
 
 - **Python 3.11**  
-Téléchargez les sources depuis le [site officiel Python](https://www.python.org/downloads/source/
+Téléchargez les sources depuis le site officiel Python : https://www.python.org/downloads/source/
 
 Un système d'analyse vidéo par IA pour détecter les émotions et le stress à partir de flux vidéo en temps réel ou de fichiers pré-enregistrés.
 
@@ -60,8 +60,9 @@ Le système génère automatiquement des graphiques d'analyse émotionnelle :
 1. Clonez le dépôt :
 ```bash
 git clone https://github.com/Ilyas11-03/EmoVision-Analyzer.git
-cd EmoVision-Analyzer
+
 Installez les dépendances :
+
 
 bash
 pip install -r requirements.txt
