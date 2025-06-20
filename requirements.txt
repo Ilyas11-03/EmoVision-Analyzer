@@ -13,5 +13,6 @@ altair==5.5.0
 soundfile==0.13.1
 fer==22.5.1
 deepface==0.0.93
+pyAudioAnalysis==0.3.14
 
 .venv\Scripts\activate

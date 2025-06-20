@@ -6,10 +6,18 @@ def detect_emotions_on_image(image_path):
         result = DeepFace.analyze(img_path=image_path, actions=["emotion"], enforce_detection=False)
         if isinstance(result, list) and len(result) > 0:  # Vérifie si le résultat est une liste non vide
             res = result[0]  # Prend le premier résultat de la liste
+            emotions = res.get("emotion", {})
+
+            #Ajout d'émotions dérivées
+            emotions["excited"] = round(emotions.get("happy",0) * 0.6, 2)
+            emotions["bored"] = round(emotions.get("sad",0) * 0.5, 2)
+            emotions["confused"] = round(emotions.get("neutral",0)* 0.4, 2)
+
+            dominant_emotion = max(emotions, key=emotions.get)
             return {
-                "frame": image_path.split("/")[-1],  # Nom du fichier image
-                "dominant_emotion": res.get("dominant_emotion", "N/A"),  # Récupère l'émotion dominante, "N/A" si absente
-                "emotions": res.get("emotion", {})  # Récupère le score de chaque émotion, dictionnaire vide si absent
+                 "frame": image_path.split("/")[-1],
+                "dominant_emotion": dominant_emotion,
+                "emotions": emotions
             }
         # Si aucun résultat, retourne des valeurs par défaut
         return {"frame": image_path.split("/")[-1], "dominant_emotion": "N/A", "emotions": {}}

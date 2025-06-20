@@ -9,9 +9,10 @@ import streamlit as st  # Importation de Streamlit pour créer l'interface web
 from app.video_processing import extract_frames  # Importation de la fonction d'extraction de frames
 from app.emotion_detector import detect_emotions_on_image  # Importation de la détection d'émotions
 from app.report_generator import ReportGenerator  # Importation du générateur de rapports
+from app.voice_emotion import extract_audio_emotions  # Importation de l'analyse des émotions vocales
 
 def main():
-    st.title("Détection d'Émotions Faciales (Sans Audio)")  # Titre de l'application
+    st.title("Détection d'Émotions Faciales")  # Titre de l'application
 
     uploaded_video = st.file_uploader("Uploader une vidéo", type=["mp4"])  # Widget pour uploader une vidéo
     if uploaded_video:
@@ -25,6 +26,9 @@ def main():
             res = detect_emotions_on_image(os.path.join("temp_frames", frame_file))  # Détecte les émotions sur la frame
             results.append(res)  # Ajoute le résultat à la liste
 
+        #Analyse des émotions vocales
+        voice_results = extract_audio_emotions("temp_video.mp4")
+        
         report = ReportGenerator(results, video_name="temp_video.mp4")  # Crée un rapport à partir des résultats
         report.to_json("report.json")  # Génère un rapport JSON
         report.to_pdf("report.pdf")  # Génère un rapport PDF
@@ -37,7 +41,11 @@ def main():
         emotion_rows = []  # Liste pour stocker les données de chaque émotion par frame
         for idx, r in enumerate(results):
             for emotion, score in r.get("emotions", {}).items():  # Parcourt chaque émotion détectée
-                emotion_rows.append({"Frame": idx, "Emotion": emotion, "Score": score})  # Ajoute la donnée à la liste
+                emotion_rows.append({
+                    "Frame": idx, 
+                    "Emotion": emotion, 
+                    "Score": score
+                })  # Ajoute la donnée à la liste
 
         df_emotions = pd.DataFrame(emotion_rows)  # Crée un DataFrame pandas à partir des données
         if not df_emotions.empty:
