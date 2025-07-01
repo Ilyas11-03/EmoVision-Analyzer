@@ -1,6 +1,6 @@
-import librosa
+import librosa # Importation de la bibliothèque librosa pour le traitement audio
 import numpy as np
-import subprocess
+import subprocess # Importation de la bibliothèque subprocess pour exécuter des commandes système
 import os
 
 def extract_audio_features(video_path):
