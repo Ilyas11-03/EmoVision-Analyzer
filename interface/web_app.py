@@ -10,9 +10,10 @@ import streamlit as st  # Importation de Streamlit pour créer l'interface web
 from app.video_processing import extract_frames  # Importation de la fonction d'extraction de frames
 from app.emotion_detector import detect_emotions_on_image  # Importation de la détection d'émotions
 from app.report_generator import ReportGenerator  # Importation du générateur de rapports
-from app.voice_emotion import extract_audio_emotions  # Importation de l'analyse des émotions vocales
+
 
 def main():
+
     st.title("Détection d'Émotions Faciales")  # Affiche le titre principal de l'application
 
     uploaded_video = st.file_uploader("Uploader une vidéo", type=["mp4"])  # Widget pour uploader une vidéo MP4
@@ -30,6 +31,7 @@ def main():
         results = []  # Initialise une liste pour stocker les résultats d'émotions par frame
         for frame_file in sorted(os.listdir("temp_frames")):  # Parcourt chaque image extraite, triée par nom
             res = detect_emotions_on_image(os.path.join("temp_frames", frame_file))  # Détecte les émotions sur la frame
+            res["frame"] = frame_file  # Ajoute le nom de la frame au résultat
             results.append(res)  # Ajoute le résultat à la liste des résultats
 
         report = ReportGenerator(results, video_name="temp_video.mp4")  # Crée un rapport à partir des résultats

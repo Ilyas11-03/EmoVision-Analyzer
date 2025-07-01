@@ -14,5 +14,9 @@ soundfile==0.13.1
 fer==22.5.1
 deepface==0.0.93
 pyAudioAnalysis==0.3.14
-
+fpdf==1.7.2
+csv==1.0
+subprocess==3.5.3
+torch==2.7.1
+torchAudio==2.7.1
 .venv\Scripts\activate
