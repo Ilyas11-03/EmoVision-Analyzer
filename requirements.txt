@@ -1,5 +1,5 @@
-altair==5.5.0
-csv==1.0
+altair==5.5.0 Bibliothèque de visualisation de données déclarative en Python, basée sur Vega-Lite. Utile pour créer des graphiques interactifs.
+csv==1.0 Module intégré de Python pour lire et écrire des fichiers CSV. 
 deepface==0.0.93
 fer==22.5.1
 fpdf==1.7.2
