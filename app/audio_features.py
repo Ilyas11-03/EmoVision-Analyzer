@@ -2,9 +2,11 @@ import librosa  # Importation de la bibliothèque librosa pour le traitement aud
 import numpy as np  # Importation de numpy pour les opérations numériques
 
 def extract_audio_features(file_path):
-    y, sr = librosa.load(file_path, sr=None)  # Chargement du fichier audio, y = signal audio, sr = taux d'échantillonnage
+
+    y, sr = librosa.load(file_path, sr=22050, duration=60)  # Chargement du fichier audio, y = signal audio, sr = taux d'échantillonnage
 
     rms = librosa.feature.rms(y=y).mean()  # Calcul de l'énergie RMS moyenne du signal
+
 
     pitches, magnitudes = librosa.piptrack(y=y, sr=sr)  # Extraction des hauteurs (pitches) et magnitudes du spectre
     pitch_values = pitches[magnitudes > np.median(magnitudes)]  # Sélection des hauteurs dont la magnitude est supérieure à la médiane

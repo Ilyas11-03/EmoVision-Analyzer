@@ -18,6 +18,7 @@ class DummyEmotionModel(torch.nn.Module):
 EMOTIONS = ["happy", "sad", "angry", "neutral","bored", "excited", "confused","suprise","disgust","fear"]  # Liste des émotions à détecter
 
 def extract_audio_emotions(video_path):
+
     try:
          # Chemin temporaire pour sauvegarder l'audio extrait
         audio_path = "temp_audio.wav"
@@ -37,6 +38,7 @@ def extract_audio_emotions(video_path):
         scores = output.squeeze().tolist() # Convertit les scores en liste
         dominant_idx = int(torch.argmax(output)) # Trouve l'indice de l'émotion dominante
         dominant_emotion = EMOTIONS[dominant_idx] # Récupère le nom de l'émotion dominante
+        
          # Crée un dictionnaire avec le score de chaque émotion (en %)
         distribution = {EMOTIONS[i]: round(float(scores[i]) * 100, 2) for i in range(len(EMOTIONS))}
         

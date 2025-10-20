@@ -16,5 +16,7 @@ soundfile==0.13.1
 streamlit==1.45.1
 torch==2.7.1
 torchAudio==2.7.1
+sentence_transformers==2.6.1
+transformers==4.41.1
 # To install the dependencies, run the following command in your terminal:
 .venv\Scripts\activate

@@ -1,5 +1,8 @@
 from deepface import DeepFace  # Importation de la bibliothèque DeepFace pour l'analyse des émotions
 
+# Liste des émotions ambigües ou “suspectes”
+SUSPECT_EMOTIONS = ["nervous", "fear", "confused", "pain", "angry", "disgust", "hate"]
+
 def detect_emotions_on_image(image_path):
 
     try:
@@ -17,14 +20,30 @@ def detect_emotions_on_image(image_path):
             emotions["nervous"] = round(emotions.get("fear", 0) * 0.6 + emotions.get("surprise", 0) * 0.2, 2) # Calcule 'nervous' à partir de 'fear' et 'surprise'
 
             dominant_emotion = max(emotions, key=emotions.get) # Détermine l'émotion dominante (score le plus élevé)
+
             return {
-                 "frame":  image_path.split("/")[-1] if "/" in image_path else image_path.split("\\")[-1],  # Récupère le nom de la frame depuis le chemin
-                "dominant_emotion": dominant_emotion, # Émotion dominante détectée
-                "emotions": emotions # Dictionnaire des scores d'émotions
+                "frame": image_path.split("/")[-1] if "/" in image_path else image_path.split("\\")[-1],
+                "dominant_emotion": dominant_emotion,
+                "emotions": emotions,
+                "is_suspect": dominant_emotion in SUSPECT_EMOTIONS  # ✅ Ajout ici
             }
-        # Si aucun résultat, retourne des valeurs par défaut
-        return {"frame": image_path.split("/")[-1], "dominant_emotion": "N/A", "emotions": {}}
+        
+        # Aucun résultat détecté
+        
+        return {
+              "frame": image_path.split("/")[-1],
+              "dominant_emotion": "N/A",
+              "emotions": {},
+              "is_suspect": False
+        }
+       
     except Exception as e:
         # En cas d'erreur, retourne les valeurs par défaut et le message d'erreur
-        return {"frame": image_path.split("/")[-1], "dominant_emotion": "N/A", "emotions": {}, "error": str(e)}
+       return {
+            "frame": image_path.split("/")[-1],
+            "dominant_emotion": "N/A",
+            "emotions": {},
+            "is_suspect": False,
+            "error": str(e)
+        }
     
