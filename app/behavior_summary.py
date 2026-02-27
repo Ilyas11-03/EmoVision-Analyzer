@@ -1,41 +1,188 @@
-from collections import Counter  # Importe Counter pour compter les émotions dominantes
+from collections import Counter
+from typing import List
 
-# Fonction qui génère un résumé du comportement émotionnel à partir des frames les plus expressives
-def generate_behavior_summary(top_frames):
+# ── Catégories d'émotions ─────────────────────────────────────────────────────
+EMOTION_CATEGORIES = {
+    "positive": ["happy", "excited", "smile", "laughter"],
+    "negative": ["angry", "fear", "disgust", "sad", "nervous", "pain", "hate"],
+    "neutral":  ["neutral", "confused", "surprise", "bored"],
+}
+
+# ── Distinction émotions primaires vs dérivées ────────────────────────────────
+# Important pour la transparence académique : les émotions dérivées sont
+# calculées par heuristique, pas détectées directement par DeepFace.
+
+PRIMARY_EMOTIONS   = ["happy", "sad", "angry", "fear", "disgust", "neutral", "surprise"]
+DERIVED_EMOTIONS   = ["excited", "bored", "confused", "nervous", "silly"]
+
+# ── Templates de phrases (accord grammatical corrigé) ────────────────────────
+
+SUMMARY_TEMPLATES = {
+    "happy":    "La personne montre des signes de joie ou d'enthousiasme.",
+    "sad":      "La personne paraît triste ou mélancolique.",
+    "angry":    "La personne manifeste de l'agacement ou de la colère.",
+    "fear":     "La personne semble inquiète ou effrayée.",
+    "disgust":  "La personne exprime du dégoût ou du rejet.",
+    "neutral":  "La personne semble calme et peu expressive.",
+    "surprise": "La personne réagit de manière étonnée ou inattendue.",
+    # Émotions dérivées (signalées comme telles)
+    "excited":  "La personne semble enthousiaste ou très impliquée. (émotion inférée)",
+    "bored":    "La personne paraît peu impliquée ou désintéressée. (émotion inférée)",
+    "confused": "La personne paraît désorientée ou indécise. (émotion inférée)",
+    "nervous":  "La personne semble tendue ou stressée. (émotion inférée)",
+    "silly":    "La personne adopte une attitude légère ou exagérée. (émotion inférée)",
+    "pain":     "La personne manifeste un inconfort ou une gêne.",
+    "hate":     "La personne présente des signes de rejet ou de mépris.",
+    "smile":    "La personne affiche des sourires fréquents.",
+    "laughter": "La personne rit fréquemment ou semble très détendue.",
+     # ── Nouvelles émotions ──────────────────────────────────────────────────
+    "frustrated": "La personne manifeste des signes de frustration ou d'impatience. (émotion inférée)",
+    "anxious":    "La personne semble anxieuse ou préoccupée. (émotion inférée)",
+    "proud":      "La personne affiche une attitude confiante ou fière. (émotion inférée)",
+}
+
+# ── Fonction principale ───────────────────────────────────────────────────────
+
+def generate_behavior_summary(emotion_results: List[dict]) -> str:
     """
-    Génère une phrase résumant le comportement émotionnel général
-    à partir des frames les plus expressives (top_frames).
+    Génère un résumé textuel du comportement émotionnel global
+    à partir de la liste complète des résultats frame par frame.
+
+    CORRECTION : reçoit maintenant emotion_results (liste complète)
+    au lieu de top_frames uniquement, pour une analyse plus représentative.
+    Génère un résumé multi-émotions au lieu d'une seule émotion dominante.
+
+    Args:
+        emotion_results : Liste de dicts issus de detect_emotions_on_image().
+
+    Returns:
+        str : Résumé comportemental en français.
     """
-    if not top_frames:  # Vérifie si la liste des frames est vide
-        return "Aucune émotion détectée de manière significative dans la vidéo."  # Retourne un message si aucune frame expressive
-    dominant_emotions = [f["dominant_emotion"] for f in top_frames if f.get("dominant_emotion") != "N/A"]  # Extrait les émotions dominantes sauf 'N/A'
-    if not dominant_emotions:  # Vérifie si aucune émotion dominante n'a été trouvée
-        return "Le visage semble neutre ou difficile à analyser émotionnellement."  # Retourne un message si aucune émotion détectée
+    if not emotion_results:
+        return "Aucune émotion détectée de manière significative dans la vidéo."
 
-    counts = Counter(dominant_emotions)  # Compte la fréquence de chaque émotion dominante
-    most_common = counts.most_common(1)[0]  # Récupère l'émotion la plus fréquente et son nombre d'occurrences
+    # ── 1. Collecter les émotions dominantes ──────────────────────────────────
+    dominant_list = [
+        r.get("dominant_emotion", "N/A")
+        for r in emotion_results
+        if r.get("dominant_emotion") not in ("N/A", None)
+    ]
 
-    emotion = most_common[0]  # Récupère le nom de l'émotion dominante
-    count = most_common[1]  # Récupère le nombre d'occurrences de cette émotion
+    if not dominant_list:
+        return "Le visage semble neutre ou difficile à analyser émotionnellement."
 
-    # Modèles de phrases simples pour chaque émotion
-    summary_templates = {
-        "happy": "La personne montre des signes de joie ou d'excitation.",  # Phrase pour l'émotion 'happy'
-        "sad": "La personne paraît triste ou mélancolique.",  # Phrase pour l'émotion 'sad'
-        "angry": "La personne manifeste de l'agacement ou de la colère.",  # Phrase pour l'émotion 'angry'
-        "fear": "La personne semble inquiet ou effrayé.",  # Phrase pour l'émotion 'fear'
-        "neutral": "La personne semble calme ou indifférent.",  # Phrase pour l'émotion 'neutral'
-        "surprise": "La personne réagit de manière étonnée ou inattendue.",  # Phrase pour l'émotion 'surprise'
-        "confused": "La personne paraît désorienté ou indécis.",  # Phrase pour l'émotion 'confused'
-        "nervous": "La personne semble stressé ou tendu.",  # Phrase pour l'émotion 'nervous'
-        "excited": "La personne montre de l'enthousiasme ou de l'énergie.",  # Phrase pour l'émotion 'excited'
-        "bored": "La personne semble peu impliqué ou désintéressé.",  # Phrase pour l'émotion 'bored'
-        "silly": "La personne adopte une attitude légère ou exagérée.",  # Phrase pour l'émotion 'silly'
-        "pain": "La personne manifeste un inconfort ou une douleur.",  # Phrase pour l'émotion 'pain'
-        "hate": "La personne présente des signes de rejet ou de mépris.",  # Phrase pour l'émotion 'hate'
-        "smile": "La personne affiche des sourires fréquents.",  # Phrase pour l'émotion 'smile'
-        "laughter": "La personne rit fréquemment ou semble très détendu."  # Phrase pour l'émotion 'laughter'
+    counter = Counter(dominant_list)
+    total   = len(dominant_list)
+
+    # ── 2. Top 3 émotions avec leur pourcentage ───────────────────────────────
+    top_3 = counter.most_common(3)
+
+    # ── 3. Catégorie dominante globale ───────────────────────────────────────
+    category_scores = {"positive": 0, "negative": 0, "neutral": 0}
+    for emotion, count in counter.items():
+        for category, labels in EMOTION_CATEGORIES.items():
+            if emotion.lower() in labels:
+                category_scores[category] += count
+                break
+
+    dominant_category = max(category_scores, key=category_scores.get)
+
+    category_phrases = {
+        "positive": "Le comportement général est plutôt positif et ouvert.",
+        "negative": "Le comportement général présente des signaux de tension ou d'inconfort.",
+        "neutral":  "Le comportement général est neutre et contrôlé.",
     }
 
-    phrase = summary_templates.get(emotion, f"La personne exprime principalement l’émotion '{emotion}'.")  # Sélectionne la phrase correspondant à l'émotion dominante
-    return f"{phrase} (dominante dans {count} frame(s) expressive(s))."  # Retourne le résumé avec le nombre de frames où l'émotion est dominante
+    # ── 4. Détection d'alternance émotionnelle (signal de stress) ─────────────
+    # Si plusieurs émotions de catégories différentes se succèdent fréquemment,
+    # c'est un indicateur de dissonance émotionnelle (pertinent pour le PFE).
+    unique_categories_seen = set()
+    for emotion in dominant_list:
+        for cat, labels in EMOTION_CATEGORIES.items():
+            if emotion.lower() in labels:
+                unique_categories_seen.add(cat)
+                break
+
+    alternance_note = ""
+    if len(unique_categories_seen) >= 2:
+        alternance_note = (
+            " Une alternance entre des émotions de polarités différentes "
+            "a été observée, ce qui peut indiquer une dissonance émotionnelle."
+        )
+
+    # ── 5. Assemblage du résumé ───────────────────────────────────────────────
+    # lines = []
+
+    # Phrase d'introduction selon la catégorie dominante
+    lines = [category_phrases[dominant_category]]
+
+    # Détail des top émotions
+    for emotion, count in top_3:
+        pct      = round(count / total * 100, 1)
+        template = SUMMARY_TEMPLATES.get(
+            emotion,
+            f"La personne exprime principalement l'émotion '{emotion}'."
+        )
+        lines.append(f"• {template} ({pct}% des frames)")
+
+    # Note sur l'alternance émotionnelle
+    if alternance_note:
+        lines.append(alternance_note)
+
+    # Avertissement si les émotions dominantes sont dérivées
+    top_emotion_name = top_3[0][0]
+    if top_emotion_name in DERIVED_EMOTIONS:
+        lines.append(
+            "⚠️ Note : l'émotion dominante est une valeur inférée par heuristique, "
+            "non détectée directement par le modèle de vision."
+        )
+
+    return "\n".join(lines)
+
+
+# ── Fonction utilitaire pour le rapport ───────────────────────────────────────
+def get_emotion_distribution_summary(emotion_results: List[dict]) -> dict:
+    """
+    Retourne un résumé statistique de la distribution émotionnelle.
+    Utile pour le rapport PDF et les métriques du PFE.
+
+    Returns:
+        dict : {
+            "top_emotions"        : [(émotion, count), ...],
+            "category_breakdown"  : {"positive": %, "negative": %, "neutral": %},
+            "total_frames"        : int,
+            "dominant_emotion"    : str,
+            "dominant_category"   : str,
+        }
+    """
+    dominant_list = [
+        r.get("dominant_emotion", "N/A")
+        for r in emotion_results
+        if r.get("dominant_emotion") not in ("N/A", None)
+    ]
+
+    if not dominant_list:
+        return {}
+
+    counter = Counter(dominant_list)
+    total   = len(dominant_list)
+
+    category_counts = {"positive": 0, "negative": 0, "neutral": 0}
+    for emotion, count in counter.items():
+        for cat, labels in EMOTION_CATEGORIES.items():
+            if emotion.lower() in labels:
+                category_counts[cat] += count
+                break
+
+    category_breakdown = {
+        cat: round(cnt / total * 100, 1)
+        for cat, cnt in category_counts.items()
+    }
+
+    return {
+        "top_emotions":       counter.most_common(3),
+        "category_breakdown": category_breakdown,
+        "total_frames":       total,
+        "dominant_emotion":   counter.most_common(1)[0][0],
+        "dominant_category":  max(category_counts, key=category_counts.get),
+    }

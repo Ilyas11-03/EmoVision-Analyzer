@@ -1,28 +1,153 @@
-import cv2  # Importation de la bibliothèque OpenCV pour le traitement vidéo
-import os  # Importation du module os pour la gestion des fichiers et dossiers
+import os
+import cv2
+from typing import List
 
-def extract_frames(video_path, output_folder, fps=0.3): # 0.1 fps = 1 image toutes les 10 secondes
-    
-    if not os.path.exists(output_folder):  # Vérifie si le dossier de sortie existe
-        os.makedirs(output_folder)  # Crée le dossier de sortie s'il n'existe pas
+# ── Constantes ────────────────────────────────────────────────────────────────
 
-    vidcap = cv2.VideoCapture(video_path)  # Ouvre la vidéo pour la lecture
-    video_fps = vidcap.get(cv2.CAP_PROP_FPS)  # Récupère le nombre d'images par seconde de la vidéo
+DEFAULT_FPS    = 0.3   # 1 frame toutes les ~3 secondes
+FRAME_FORMAT   = "jpg" # Format de fichier pour les frames extraites (jpg ou png)
 
-    if video_fps == 0:
-        raise ValueError("Impossible de lire la fréquence de la vidéo.")
-    
-    frame_interval = max(1, int(video_fps // fps))  # Calcule l'intervalle entre les frames à extraire
- 
-    count, saved = 0, 0  # Initialise les compteurs de frames lues et sauvegardées
- 
-    success, image = vidcap.read()  # Lit la première image de la vidéo, 'success' est True si la lecture a réussi, 'image' contient l'image lue.
-    while success:  # Boucle tant que la lecture d'une image est réussie.
-        if count % frame_interval == 0:  # Si le numéro de l'image est un multiple de 'frame_interval', on sauvegarde cette image.
-            filename = os.path.join(output_folder, f"frame_{saved:04d}.jpg")  # Crée le chemin du fichier pour sauvegarder l'image, avec un numéro formaté sur 4 chiffres.
-            cv2.imwrite(filename, image)  # Sauvegarde l'image actuelle dans le fichier spécifié.
-            saved += 1  # Incrémente le compteur d'images sauvegardées.
-        success, image = vidcap.read()  # Lit l'image suivante de la vidéo.
-        count += 1  # Incrémente le compteur total d'images lues.
-    
-    vidcap.release()  # Libère les ressources utilisées par la
+
+# ── Fonction principale ───────────────────────────────────────────────────────
+def extract_frames(
+    video_path:     str,
+    output_folder:  str,
+    fps:            float = DEFAULT_FPS
+) -> List[str]:
+    """
+    Extrait des frames d'une vidéo à intervalle régulier.
+
+    CORRECTION : la fonction retourne maintenant la liste des chemins
+    des frames extraites — indispensable pour analyzer.py qui doit
+    savoir où se trouvent les images à analyser.
+
+    CORRECTION : ajout d'un bloc try/finally pour libérer la capture
+    vidéo même en cas d'exception.
+
+    CORRECTION : vérification que la vidéo source existe avant ouverture.
+
+    Args:
+        video_path    : Chemin vers la vidéo source.
+        output_folder : Dossier de destination des frames extraites.
+        fps           : Nombre de frames à extraire par seconde de vidéo.
+                        0.3 = 1 frame toutes les ~3 secondes.
+                        1.0 = 1 frame par seconde.
+
+    Returns:
+        List[str] : Liste ordonnée des chemins absolus des frames extraites.
+
+    Raises:
+        FileNotFoundError : Si la vidéo source n'existe pas.
+        ValueError        : Si la fréquence de la vidéo est illisible.
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Vidéo introuvable : '{video_path}'")
+
+    os.makedirs(output_folder, exist_ok=True)
+
+    vidcap = cv2.VideoCapture(video_path)
+
+    try:
+        video_fps = vidcap.get(cv2.CAP_PROP_FPS)
+        if video_fps <= 0:
+            raise ValueError(
+                f"Impossible de lire la fréquence de '{video_path}'. "
+                f"Vérifiez que le fichier est une vidéo valide."
+            )
+
+        # Intervalle entre les frames à extraire
+        frame_interval = max(1, int(round(video_fps / fps)))
+
+        frame_paths: List[str] = []
+        count  = 0
+        saved  = 0
+
+        success, image = vidcap.read()
+
+        while success:
+            if count % frame_interval == 0:
+                filename   = f"frame_{saved:04d}.{FRAME_FORMAT}"
+                frame_path = os.path.join(output_folder, filename)
+                cv2.imwrite(frame_path, image)
+                # CORRECTION : on accumule le chemin absolu de chaque frame
+                frame_paths.append(os.path.abspath(frame_path))
+                saved += 1
+
+            success, image = vidcap.read()
+            count += 1
+
+    finally:
+        # CORRECTION : libération garantie même en cas d'exception
+        vidcap.release()
+
+    return frame_paths
+
+
+# ── Nettoyage des frames temporaires ─────────────────────────────────────────
+
+def clear_frames(output_folder: str):
+    """
+    Supprime toutes les frames extraites du dossier temporaire.
+    À appeler après l'analyse pour libérer l'espace disque.
+
+    Args:
+        output_folder : Dossier contenant les frames à supprimer.
+    """
+    if not os.path.isdir(output_folder):
+        return
+
+    removed = 0
+    for filename in os.listdir(output_folder):
+        if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+            file_path = os.path.join(output_folder, filename)
+            try:
+                os.remove(file_path)
+                removed += 1
+            except OSError as e:
+                print(f"[video_processing] Impossible de supprimer '{file_path}' : {e}")
+
+    print(f"[video_processing] {removed} frame(s) supprimée(s) de '{output_folder}'.")
+
+
+# ── Informations sur la vidéo ─────────────────────────────────────────────────
+
+def get_video_info(video_path: str) -> dict:
+    """
+    Retourne les métadonnées principales d'une vidéo.
+    Utile pour afficher les informations dans l'interface Streamlit
+    et pour calibrer l'extraction de frames.
+
+    Args:
+        video_path : Chemin vers la vidéo.
+
+    Returns:
+        dict : {
+            "duration_sec"  : float,  durée totale en secondes
+            "fps"           : float,  fréquence d'images native
+            "total_frames"  : int,    nombre total de frames
+            "width"         : int,    largeur en pixels
+            "height"        : int,    hauteur en pixels
+            "resolution"    : str,    ex: "1920x1080"
+        }
+    """
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Vidéo introuvable : '{video_path}'")
+
+    vidcap = cv2.VideoCapture(video_path)
+    try:
+        fps          = vidcap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width        = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height       = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        duration_sec = round(total_frames / fps, 2) if fps > 0 else 0.0
+
+        return {
+            "duration_sec":  duration_sec,
+            "fps":           round(fps, 2),
+            "total_frames":  total_frames,
+            "width":         width,
+            "height":        height,
+            "resolution":    f"{width}x{height}",
+        }
+    finally:
+        vidcap.release()

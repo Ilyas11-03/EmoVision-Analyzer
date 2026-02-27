@@ -1,49 +1,140 @@
-from deepface import DeepFace  # Importation de la bibliothèque DeepFace pour l'analyse des émotions
+import os
+from deepface import DeepFace
 
-# Liste des émotions ambigües ou “suspectes”
-SUSPECT_EMOTIONS = ["nervous", "fear", "confused", "pain", "angry", "disgust", "hate"]
+# ── Émotions primaires détectées directement par DeepFace ────────────────────
+PRIMARY_EMOTIONS = ["happy", "sad", "angry", "fear", "disgust", "neutral", "surprise"]
 
-def detect_emotions_on_image(image_path):
+# ── Émotions dérivées par heuristique (signalées comme telles) ───────────────
+# Ces valeurs sont des approximations, pas des détections directes.
+# Pondérations issues d'une approximation raisonnée — à mentionner dans le mémoire.
+DERIVED_EMOTION_RULES = {
+    "excited":  lambda e: e.get("happy", 0) * 0.6,
+    "bored":    lambda e: e.get("sad", 0)   * 0.5,
+    "confused": lambda e: e.get("neutral", 0) * 0.4,
+    "silly":    lambda e: e.get("happy", 0) * 0.3 + e.get("surprise", 0) * 0.2,
+    "nervous":  lambda e: e.get("fear", 0)  * 0.6 + e.get("surprise", 0) * 0.2,
+     # ── Nouvelles émotions ──────────────────────────────────────────────────
+    "frustrated": lambda e: e.get("angry", 0) * 0.5 + e.get("disgust", 0) * 0.3,
+    "anxious":    lambda e: e.get("fear", 0)  * 0.7 + e.get("neutral", 0) * 0.2,
+    "proud":      lambda e: e.get("happy", 0) * 0.4 + e.get("surprise", 0) * 0.3,
+}
+
+# ── Émotions considérées comme "suspectes" (signaux de tension) ───────────────
+SUSPECT_EMOTIONS = ["nervous", "fear", "confused", "pain", "angry", "disgust", "hate", "frustrated", "anxious"]
+
+# ── Utilitaire : extraction du nom de fichier cross-platform ─────────────────
+def _get_filename(path: str) -> str:
+    """Extrait le nom de fichier de manière fiable sur Windows et Linux."""
+    return os.path.basename(path)
+
+# ── Fonction principale ───────────────────────────────────────────────────────
+def detect_emotions_on_image(image_path: str) -> dict:
+    """
+    Analyse une image pour détecter les émotions faciales.
+
+    - Les émotions primaires sont détectées par DeepFace.
+    - Les émotions dérivées sont calculées par heuristique et clairement
+      marquées comme telles dans le résultat.
+    - L'émotion dominante est déterminée uniquement sur les émotions primaires
+      pour éviter que les valeurs dérivées ne biaisent le résultat.
+
+    Args:
+        image_path : Chemin vers l'image à analyser.
+
+    Returns:
+        dict : {
+            "frame"            : str,   nom du fichier
+            "dominant_emotion" : str,   émotion primaire dominante
+            "emotions"         : dict,  scores primaires (DeepFace)
+            "derived_emotions" : dict,  scores dérivés (heuristique)
+            "is_suspect"       : bool,  True si dominante dans SUSPECT_EMOTIONS
+            "is_derived_dominant": bool, True si la dominante est dérivée
+            "error"            : str,   présent uniquement en cas d'erreur
+        }
+    """
+    filename = _get_filename(image_path)
 
     try:
-        # Analyse l'image pour détecter les émotions, sans forcer la détection d'un visage
-        result = DeepFace.analyze(img_path=image_path, actions=["emotion"], enforce_detection=False)
-        if isinstance(result, list) and len(result) > 0:  # Vérifie si le résultat est une liste non vide
-            res = result[0]  # Prend le premier résultat de la liste
-            emotions = res.get("emotion", {}) # Récupère le dictionnaire des scores d'émotions
+        result = DeepFace.analyze(
+            img_path=image_path,
+            actions=["emotion"],
+            enforce_detection=False  # Permet l'analyse même sans visage net
+        )
 
-            #Ajout d'émotions dérivées
-            emotions["excited"] = round(emotions.get("happy",0) * 0.6, 2) # Calcule 'excited' à partir de 'happy'
-            emotions["bored"] = round(emotions.get("sad",0) * 0.5, 2) # Calcule 'bored' à partir de 'sad'
-            emotions["confused"] = round(emotions.get("neutral",0)* 0.4, 2) # Calcule 'confused' à partir de 'neutral'
-            emotions["silly"] = round(emotions.get("happy", 0) * 0.3 + emotions.get("surprise", 0) * 0.2, 2) # Calcule 'silly' à partir de 'happy' et 'surprise'
-            emotions["nervous"] = round(emotions.get("fear", 0) * 0.6 + emotions.get("surprise", 0) * 0.2, 2) # Calcule 'nervous' à partir de 'fear' et 'surprise'
+        if not isinstance(result, list) or len(result) == 0:
+            return _empty_result(filename, reason="Aucun résultat retourné par DeepFace.")
 
-            dominant_emotion = max(emotions, key=emotions.get) # Détermine l'émotion dominante (score le plus élevé)
+        raw = result[0]
+        primary_emotions = raw.get("emotion", {})
 
-            return {
-                "frame": image_path.split("/")[-1] if "/" in image_path else image_path.split("\\")[-1],
-                "dominant_emotion": dominant_emotion,
-                "emotions": emotions,
-                "is_suspect": dominant_emotion in SUSPECT_EMOTIONS  # ✅ Ajout ici
-            }
-        
-        # Aucun résultat détecté
-        
+        # Garder uniquement les émotions primaires reconnues
+        # CORRECTION : on ne modifie plus le dict primary_emotions directement
+        primary_scores = {
+            k: round(float(v), 2)
+            for k, v in primary_emotions.items()
+            if k in PRIMARY_EMOTIONS
+        }
+
+        if not primary_scores:
+            return _empty_result(filename, reason="Scores d'émotions primaires vides.")
+
+        # ── Émotions dérivées ─────────────────────────────────────────────────
+        # CORRECTION : séparées des primaires pour ne pas biaiser la dominante
+        derived_scores = {
+            name: round(rule(primary_scores), 2)
+            for name, rule in DERIVED_EMOTION_RULES.items()
+        }
+
+        # ── Émotion dominante sur primaires uniquement ────────────────────────
+        # CORRECTION : la dominante est calculée sur les scores primaires seuls,
+        # les dérivées ne peuvent plus "gagner" artificiellement.
+        dominant_emotion = max(primary_scores, key=primary_scores.get)
+
+        # Vérification si la dominante serait différente avec les dérivées
+        # (information utile pour la transparence du rapport)
+        all_scores = primary_scores | derived_scores
+        dominant_overall = max(all_scores, key=all_scores.get)
+        is_derived_dominant = dominant_overall != dominant_emotion
+
         return {
-              "frame": image_path.split("/")[-1],
-              "dominant_emotion": "N/A",
-              "emotions": {},
-              "is_suspect": False
+            "frame":               filename,
+            "dominant_emotion":    dominant_emotion,
+            "emotions":            primary_scores,
+            "derived_emotions":    derived_scores,
+            "is_suspect":          dominant_emotion in SUSPECT_EMOTIONS,
+            "is_derived_dominant": is_derived_dominant,
         }
-       
+
     except Exception as e:
-        # En cas d'erreur, retourne les valeurs par défaut et le message d'erreur
-       return {
-            "frame": image_path.split("/")[-1],
-            "dominant_emotion": "N/A",
-            "emotions": {},
-            "is_suspect": False,
-            "error": str(e)
-        }
-    
+        return _empty_result(filename, reason=str(e))
+
+
+# ── Résultat vide standardisé ─────────────────────────────────────────────────
+
+def _empty_result(filename: str, reason: str = "") -> dict:
+    """Retourne un résultat vide standardisé en cas d'échec."""
+    return {
+        "frame":               filename,
+        "dominant_emotion":    "N/A",
+        "emotions":            {},
+        "derived_emotions":    {},
+        "is_suspect":          False,
+        "is_derived_dominant": False,
+        "error":               reason,
+    }
+
+
+# ── Fonction utilitaire : analyse d'un lot d'images ──────────────────────────
+
+def detect_emotions_batch(image_paths: list) -> list:
+    """
+    Analyse un lot d'images et retourne la liste des résultats.
+    Utile pour traiter toutes les frames extraites d'une vidéo.
+
+    Args:
+        image_paths : Liste de chemins vers les images.
+
+    Returns:
+        list : Liste de dicts issus de detect_emotions_on_image().
+    """
+    return [detect_emotions_on_image(path) for path in image_paths]

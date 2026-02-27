@@ -1,55 +1,142 @@
-import torchaudio  # Pour charger et traiter les fichiers audio
-import torch # Pour utiliser les modèles de deep learning
-import os # Pour gérer les fichiers et le système
+import os
+import torch
+import torchaudio
+from typing import Optional
 
-# Modèle fictif à remplacer par ton vrai modèle entraîné
+# ── Émotions supportées ───────────────────────────────────────────────────────
+EMOTIONS = [
+    "happy", "sad", "angry", "neutral",
+    "bored", "excited", "confused",
+    "surprise", "disgust", "fear",
+    "frustrated", "anxious", "proud"  # ← nouveaux
+]
+
+# ── Modèle placeholder ────────────────────────────────────────────────────────
+# CORRECTION : DummyEmotionModel clairement documenté comme placeholder.
+# À remplacer par un vrai modèle entraîné (ex: wav2vec2 fine-tuné sur RAVDESS,
+# CREMA-D ou un corpus francophone annoté).
+
 class DummyEmotionModel(torch.nn.Module):
-
+    """
+    Modèle placeholder — NE PAS utiliser en production.
+    Retourne des scores aléatoires via une couche linéaire non entraînée.
+    Remplacer par un modèle fine-tuné sur un corpus audio émotionnel annoté.
+    """
     def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(40, len(EMOTIONS))
 
-        super().__init__() # Initialise la classe parente
-        self.fc = torch.nn.Linear(40, 10)  # Couche linéaire (entrée: 40, sortie: 10 émotions)
-
-    def forward(self, x):
-         # Applique la couche linéaire puis softmax pour obtenir des probabilités
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.softmax(self.fc(x.mean(dim=1)), dim=-1)
 
-# Liste des émotions à détecter
-EMOTIONS = ["happy", "sad", "angry", "neutral","bored", "excited", "confused","suprise","disgust","fear"]  # Liste des émotions à détecter
 
-def extract_audio_emotions(video_path):
+# ── Singleton modèle ──────────────────────────────────────────────────────────
+# CORRECTION : le modèle est instancié une seule fois et mis en cache.
+
+_model_instance: Optional[DummyEmotionModel] = None
+
+def _get_model() -> DummyEmotionModel:
+    """Retourne le modèle en cache (chargé une seule fois)."""
+    global _model_instance
+    if _model_instance is None:
+        _model_instance = DummyEmotionModel()
+        _model_instance.eval()
+    return _model_instance
+
+
+# ── Extraction audio ──────────────────────────────────────────────────────────
+
+def _extract_audio(video_path: str, audio_path: str, sample_rate: int = 16000):
+    """
+    Extrait l'audio d'une vidéo via ffmpeg.
+
+    CORRECTION : os.system() remplacé par subprocess pour gérer les erreurs.
+    """
+    import subprocess
+    result = subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", video_path,
+            "-ac", "1", "-ar", str(sample_rate),
+            audio_path
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"ffmpeg a échoué : {result.stderr.decode(errors='replace')}"
+        )
+
+
+# ── Fonction principale ───────────────────────────────────────────────────────
+
+def extract_audio_emotions(video_path: str) -> dict:
+    """
+    Analyse les émotions vocales d'une vidéo via extraction MFCC + modèle.
+
+    ⚠️ AVERTISSEMENT : le modèle actuel (DummyEmotionModel) est un placeholder
+    non entraîné. Les scores retournés sont aléatoires et ne doivent pas
+    être utilisés pour des conclusions réelles.
+    À remplacer par un modèle fine-tuné (wav2vec2, HuBERT, etc.).
+
+    Args:
+        video_path : Chemin vers la vidéo à analyser.
+
+    Returns:
+        dict : {
+            "dominant_emotion"    : str,
+            "emotion_distribution": dict {émotion: score %},
+            "is_placeholder"      : bool,  True tant que DummyModel est utilisé
+            "warning"             : str,   avertissement si placeholder actif
+        }
+    """
+    if not os.path.isfile(video_path):
+        return {"error": f"Vidéo introuvable : '{video_path}'"}
+
+    audio_path = "temp_voice_emotion.wav"
 
     try:
-         # Chemin temporaire pour sauvegarder l'audio extrait
-        audio_path = "temp_audio.wav"
-         # Utilise ffmpeg pour extraire l'audio de la vidéo, mono, 16kHz
-        os.system(f'ffmpeg -y -i "{video_path}" -ac 1 -ar 16000 "{audio_path}"')
-        # Charge l'audio extrait
+        _extract_audio(video_path, audio_path)
         waveform, sample_rate = torchaudio.load(audio_path)
-         # Extrait les coefficients MFCC (caractéristiques audio)
-        mfcc = torchaudio.transforms.MFCC(sample_rate=sample_rate, n_mfcc=40)(waveform)
-         # Transpose pour avoir la bonne forme (batch, time, features)
-        mfcc = mfcc.transpose(1, 2)
 
-        model = DummyEmotionModel()   # Instancie le modèle (à remplacer par ton vrai modèle)
-        with torch.no_grad(): # Désactive le calcul du gradient (inférence)
-            output = model(mfcc) # Prédit la distribution des émotions
+        # Extraction MFCC
+        mfcc_transform = torchaudio.transforms.MFCC(
+            sample_rate=sample_rate,
+            n_mfcc=40
+        )
+        mfcc = mfcc_transform(waveform).transpose(1, 2)
 
-        scores = output.squeeze().tolist() # Convertit les scores en liste
-        dominant_idx = int(torch.argmax(output)) # Trouve l'indice de l'émotion dominante
-        dominant_emotion = EMOTIONS[dominant_idx] # Récupère le nom de l'émotion dominante
-        
-         # Crée un dictionnaire avec le score de chaque émotion (en %)
-        distribution = {EMOTIONS[i]: round(float(scores[i]) * 100, 2) for i in range(len(EMOTIONS))}
-        
-        # Supprime le fichier audio temporaire
+        model = _get_model()
+
+        with torch.no_grad():
+            output = model(mfcc)
+
+        scores        = output.squeeze().tolist()
+        dominant_idx  = int(torch.argmax(output))
+        dominant_emotion = EMOTIONS[dominant_idx]
+
+        distribution = {
+            EMOTIONS[i]: round(float(scores[i]) * 100, 2)
+            for i in range(len(EMOTIONS))
+        }
+
+        # CORRECTION : flag is_placeholder pour signaler clairement
+        # dans le rapport que ces scores ne sont pas fiables
+        return {
+            "dominant_emotion":     dominant_emotion,
+            "emotion_distribution": distribution,
+            "is_placeholder":       True,
+            "warning": (
+                "⚠️ Modèle non entraîné — scores non représentatifs. "
+                "Remplacer DummyEmotionModel par un modèle fine-tuné "
+                "sur un corpus audio émotionnel annoté (RAVDESS, CREMA-D...)."
+            ),
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+    finally:
+        # CORRECTION : nettoyage garanti via finally
         if os.path.exists(audio_path):
             os.remove(audio_path)
-        # Retourne l'émotion dominante et la distribution des scores
-        return {
-            "dominant_emotion": dominant_emotion,
-            "emotion_distribution": distribution
-        }
-    except Exception as e:
-         # En cas d'erreur, retourne le message d'erreur
-        return {"error": str(e)}

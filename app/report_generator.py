@@ -1,162 +1,367 @@
-import json  # Importation du module json pour la sérialisation des données
-from fpdf import FPDF  # Importation de la classe FPDF pour générer des fichiers PDF
-import os  # Importation du module os (non utilisé ici mais souvent utile pour la gestion des fichiers)
-from collections import Counter  # Pour compter les émotions dominantes
-import csv  # Importation du module csv (non utilisé ici mais souvent utile pour la gestion des fichiers Excel)
-from datetime import datetime  # Importation du module datetime pour la gestion des dates et heures
+import os
+import json
+import csv
+from collections import Counter
+from datetime import datetime
+from typing import Optional
+from fpdf import FPDF
+
+# ── Constantes ────────────────────────────────────────────────────────────────
+
+REPORT_TITLE  = "Rapport d'Analyse Comportementale"
+FRAMES_FOLDER = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../temp_frames/")
+)
+
+# ── Nettoyage des caractères spéciaux ────────────────────────────────────────
+
+def _clean(text: str) -> str:
+    """
+    Nettoie le texte pour éviter les crashs d'encodage fpdf.
+    Remplace les accents, emojis et caractères spéciaux non supportés.
+    """
+    if not isinstance(text, str):
+        text = str(text)
+
+    replacements = {
+        # Accents français
+        "é": "e", "è": "e", "ê": "e", "ë": "e",
+        "à": "a", "â": "a", "ä": "a",
+        "ù": "u", "û": "u", "ü": "u",
+        "î": "i", "ï": "i",
+        "ô": "o", "ö": "o",
+        "ç": "c",
+        "É": "E", "È": "E", "Ê": "E",
+        "À": "A", "Â": "A",
+        "Î": "I", "Ô": "O", "Ù": "U",
+        "œ": "oe", "æ": "ae",
+        # Ponctuation spéciale
+        "\u00ab": '"', "\u00bb": '"',   # « »
+        "\u2013": "-", "\u2014": "-",   # – —
+        "\u2026": "...",                # …
+        "\u200b": "",                   # Zero-width space
+        "\u2019": "'",                  # '
+        "\u2018": "'",                  # '
+        # Emojis fréquents dans le projet
+        "\u2705": "[OK]",               # ✅
+        "\u274c": "[X]",                # ❌
+        "\u26a0\ufe0f": "[!]",          # ⚠️
+        "\u26a0": "[!]",                # ⚠
+        "\ufe0f": "",                   # Variation selector
+        "\U0001f536": "[~]",            # 🔶
+        "\U0001f3ad": "",               # 🎭
+        "\U0001f4ca": "",               # 📊
+        "\U0001f4c8": "",               # 📈
+        "\U0001f4ac": "",               # 💬
+        "\U0001f9e0": "",               # 🧠
+        "\U0001f399\ufe0f": "",         # 🎙️
+        "\U0001f4c4": "",               # 📄
+        "\U0001f610": "",               # 😶
+        "\U0001f4c1": "",               # 📁
+        "\u2b07\ufe0f": "",             # ⬇️
+        "\u2192": "->",                 # →
+        "\u2022": "-",                  # •
+    }
+
+    for orig, repl in replacements.items():
+        text = text.replace(orig, repl)
+
+    # Fallback final : supprime tout caractère non ASCII restant
+    text = text.encode("latin-1", errors="ignore").decode("latin-1")
+
+    return text
+
+
+# ── Classe PDF (fallback sans police TTF externe) ─────────────────────────────
+
+class UTF8PDF(FPDF):
+    """
+    Version fallback utilisant les polices intégrées fpdf (Times).
+    Pas de dépendance externe — fonctionne immédiatement.
+    Tous les textes passent par _clean() pour éviter les crashs d'encodage.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.set_auto_page_break(auto=True, margin=15)
+
+    def header(self):
+        self.set_font("Times", "B", 10)
+        self.set_text_color(120, 120, 120)
+        self.cell(0, 8, _clean(REPORT_TITLE), align="R", ln=True)
+        self.set_text_color(0, 0, 0)
+        self.ln(2)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Times", "I", 8)
+        self.set_text_color(150, 150, 150)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+        self.set_text_color(0, 0, 0)
+
+    def section_title(self, title: str):
+        """Titre de section avec fond gris."""
+        self.set_font("Times", "B", 12)
+        self.set_fill_color(220, 220, 220)
+        self.cell(0, 9, f"  {_clean(title)}", ln=True, fill=True)
+        self.ln(2)
+
+    def body_text(self, text: str, size: int = 10):
+        self.set_font("Times", "", size)
+        self.multi_cell(0, 6, _clean(text))
+        self.ln(1)
+
+    def key_value(self, key: str, value: str):
+        self.set_font("Times", "B", 10)
+        self.cell(55, 7, f"{_clean(key)} :", ln=False)
+        self.set_font("Times", "", 10)
+        self.multi_cell(0, 7, _clean(str(value)))
+
+
+# ── Classe principale ─────────────────────────────────────────────────────────
 
 class ReportGenerator:
 
-    def __init__(self, results, video_name="temp_video.mp4", voice_results=None,top_emotion_frames=None,behavior_summary=None,truth_analysis=None, qa_analysis=None):
-
-        self.results = results  # Stocke les résultats d'analyse (liste de dictionnaires)
-        self.video_name = video_name  # Nom du fichier vidéo analysé'
-        self.voice_results = voice_results or {} # Résultats d'analyse audio (optionnel, non utilisé ici)
+    def __init__(
+        self,
+        results:            list,
+        video_name:         str            = "video.mp4",
+        voice_results:      Optional[dict] = None,
+        top_emotion_frames: Optional[list] = None,
+        behavior_summary:   Optional[str]  = None,
+        truth_analysis:     Optional[dict] = None,
+        qa_analysis:        Optional[dict] = None,
+        dissonance:         Optional[dict] = None,
+        category_breakdown: Optional[dict] = None,
+    ):
+        self.results            = results
+        self.video_name         = video_name
+        self.voice_results      = voice_results      or {}
         self.top_emotion_frames = top_emotion_frames or []
-        self.behavior_summary = behavior_summary or "Aucune donné disponible"
-        self.truth_analysis = truth_analysis or {}
-        self.qa_analysis = qa_analysis or {}
+        self.behavior_summary   = behavior_summary   or "Aucune donnee disponible."
+        self.truth_analysis     = truth_analysis     or {}
+        self.qa_analysis        = qa_analysis        or {}
+        self.dissonance         = dissonance         or {}
+        self.category_breakdown = category_breakdown or {}
 
+    # ── Export JSON ───────────────────────────────────────────────────────────
 
-    def to_json(self, output_path="report.json"): # Génère un rapport JSON
-
+    def to_json(self, output_path: str = "report.json"):
         report_data = {
-            "video": self.video_name,  # Ajoute le nom de la vidéo au rapport
-            "frames_analyzed": len(self.results),  # Nombre de frames analysées
-            "results": self.results,  # Résultats détaillés pour chaque frame
-            "voice_emotion": self.voice_results,  # Résultats d'analyse audio (optionnel)
-            "top_emotion_frames": self.top_emotion_frames, # Liste des frames avec les émotions dominantes
-            "behavior_summary": self.behavior_summary,
-            "truth_analysis": self.truth_analysis,
-
+            "video":              self.video_name,
+            "generated_at":       datetime.now().isoformat(),
+            "frames_analyzed":    len(self.results),
+            "results":            self.results,
+            "voice_results":      self.voice_results,
+            "top_emotion_frames": self.top_emotion_frames,
+            "behavior_summary":   self.behavior_summary,
+            "truth_analysis":     self.truth_analysis,
+            "qa_analysis":        self.qa_analysis,
+            "dissonance":         self.dissonance,
+            "category_breakdown": self.category_breakdown,
         }
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=4, ensure_ascii=False)
 
-        with open(output_path, "w") as f:  # Ouvre le fichier de sortie en écriture
-            json.dump(report_data, f, indent=4)  # Écrit les données au format JSON avec indentation
+    # ── Export CSV ────────────────────────────────────────────────────────────
 
-    def to_csv(self, output_path="report.csv"): # Génère un rapport CSV
-        
-        with open(output_path, mode="w", newline="", encoding="utf-8") as csvfile:
-            fieldnames = ["Frame", "Dominant Emotion"]
-            
-            #Récupérer toutes les émotions possibles
-            all_emotions = set()
-            for item in self.results:
-                all_emotions.update(item.get("emotions", {}).keys())
-            fieldnames.extend(sorted(all_emotions))  # Ajoute les émotions comme colonnes
+    def to_csv(self, output_path: str = "report.csv"):
+        all_emotions = set()
+        for item in self.results:
+            all_emotions.update(item.get("emotions", {}).keys())
 
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames) # Crée un objet DictWriter pour écrire des dictionnaires dans le CSV
+        fieldnames = ["Frame", "Dominant Emotion", "Is Suspect"] + sorted(all_emotions)
+
+        with open(output_path, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
             for i, item in enumerate(self.results):
-                row = {"Frame": f"Frame {i+1}", "Dominant Emotion": item.get("dominant_emotion", "N/A")}
-                row.update(item.get("emotions", {}))
+                row = {
+                    "Frame":            f"Frame {i + 1}",
+                    "Dominant Emotion": item.get("dominant_emotion", "N/A"),
+                    "Is Suspect":       item.get("is_suspect", False),
+                }
+                for emotion, score in item.get("emotions", {}).items():
+                    row[emotion] = round(float(score), 2)
                 writer.writerow(row)
 
-    def to_pdf(self, output_path="report.pdf"): # Génère un rapport PDF
+    # ── Export PDF ────────────────────────────────────────────────────────────
 
-        pdf = FPDF()  # Crée un objet PDF
-        pdf.add_page()  # Ajoute une page au PDF
-        pdf.set_font("Times", style='B', size=12)  # Définit la police et la taille
+    def to_pdf(self, output_path: str = "report.pdf"):
 
-        pdf.cell(200, 10, txt="Rapport d'Analyse Emotionnelle", ln=True)  # Titre du rapport
-        pdf.cell(200, 10, txt=f"Vidéo : {self.video_name}", ln=True)  # Nom de la vidéo
-        pdf.cell(200, 10, txt=f"Date : {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True) # Date de génération du rapport
-        pdf.cell(200, 10, txt=f"Nombre de frames analysées : {len(self.results)}", ln=True)  # Nombre de frames
-        pdf.ln()  # Saut de ligne
+        pdf = UTF8PDF()
+        pdf.add_page()
 
-        # ===== 3. Résultats vocaux =====
-        if self.voice_results:
-            pdf.set_font("Times",style='B', size=12)
-            pdf.cell(200, 10, txt=" Analyse vocale :", ln=True)
-            pdf.set_font("Times", size=11)
-            for k, v in self.voice_results.items():
-                pdf.cell(200, 10, txt=f"{k}: {v}", ln=True)
-            pdf.ln() # Saut de ligne
-        
-        # ===== 4. Compter les émotions dominantes sur toutes les frames =====
-        pdf.set_font("Times", style='B', size=12)
-        pdf.cell(200, 10, txt=" Statistiques générales :", ln=True)
-        pdf.set_font("Times", size=11)
-        dominants = [item.get("dominant_emotion", "N/A") for item in self.results]
-        top_emotions = Counter(dominants).most_common(3) # Compter les occurrences de chaque émotion dominante
+        # ── 1. En-tête ────────────────────────────────────────────────────────
+        pdf.set_font("Times", "B", 16)
+        pdf.cell(0, 12, _clean(REPORT_TITLE), ln=True, align="C")
+        pdf.ln(2)
+        pdf.key_value("Video analysee", self.video_name)
+        pdf.key_value("Date de generation",
+                      datetime.now().strftime("%d/%m/%Y a %H:%M"))
+        pdf.key_value("Frames analysees", str(len(self.results)))
+        pdf.ln(4)
+
+        # ── 2. Analyse vocale ─────────────────────────────────────────────────
+        if self.voice_results and "error" not in self.voice_results:
+            pdf.section_title("Analyse vocale")
+            vocal_keys = ["rms", "pitch_mean", "pitch_std", "zcr", "stress_score"]
+            for k in vocal_keys:
+                if k in self.voice_results:
+                    pdf.key_value(k, str(self.voice_results[k]))
+            pdf.ln(3)
+
+        # ── 3. Répartition émotionnelle ───────────────────────────────────────
+        pdf.section_title("Statistiques emotionnelles")
+
+        dominants = [
+            item.get("dominant_emotion", "N/A")
+            for item in self.results
+            if item.get("dominant_emotion") not in ("N/A", None)
+        ]
+        top_emotions = Counter(dominants).most_common(3)
+        pdf.set_font("Times", "B", 10)
+        pdf.cell(0, 7, "Top 3 emotions dominantes :", ln=True)
+        pdf.set_font("Times", "", 10)
         for emo, count in top_emotions:
-            pdf.cell(200, 10, txt=f" - {emo} ({count} fois)", ln=True) # Affiche les émotions dominantes et leur fréquence
-        pdf.ln()
+            pct = round(count / len(dominants) * 100, 1) if dominants else 0
+            pdf.cell(0, 6, f"  - {_clean(emo)} : {count} frame(s) ({pct}%)", ln=True)
 
-        # ===== 5. Analyse de sincérité =====
+        if self.category_breakdown:
+            pdf.ln(2)
+            pdf.set_font("Times", "B", 10)
+            pdf.cell(0, 7, "Repartition par categorie :", ln=True)
+            pdf.set_font("Times", "", 10)
+            for cat in ["positive", "negative", "neutral"]:
+                val = self.category_breakdown.get(cat, 0.0)
+                pdf.cell(0, 6, f"  - {cat.capitalize()} : {val}%", ln=True)
+            dominant_cat = self.category_breakdown.get("dominant_category", "N/A")
+            pdf.set_font("Times", "B", 10)
+            pdf.cell(0, 7, f"  Categorie dominante : {_clean(dominant_cat)}", ln=True)
+        pdf.ln(3)
+
+        # ── 4. Dissonance émotionnelle ────────────────────────────────────────
+        if self.dissonance:
+            pdf.section_title("Dissonance emotionnelle")
+            pdf.key_value("Score de dissonance",
+                          str(self.dissonance.get("dissonance_score", "N/A")))
+            pdf.body_text(self.dissonance.get("interpretation", ""))
+            pdf.ln(2)
+
+        # ── 5. Résumé comportemental ──────────────────────────────────────────
+        pdf.section_title("Resume comportemental")
+        pdf.body_text(self.behavior_summary)
+        pdf.ln(2)
+
+        # ── 6. Analyse de sincérité ───────────────────────────────────────────
         if self.truth_analysis:
-         pdf.set_font("Arial", style='B', size=12)
-         pdf.cell(200, 10, txt="Analyse de la sincérité :", ln=True)
-         pdf.set_font("Arial", size=11)
-         score = self.truth_analysis.get("truth_score", "N/A")
-         verdict = self.truth_analysis.get("verdict", "Indéterminé")
-         explanation = self.truth_analysis.get("explanation", "")
+            pdf.section_title("Indicateur de sincerite")
+            score   = self.truth_analysis.get("truth_score", "N/A")
+            verdict = self.truth_analysis.get("verdict", "Indetermine")
+            expl    = self.truth_analysis.get("explanation", "")
+            disclaimer = self.truth_analysis.get("disclaimer", "")
+            pdf.key_value("Score",   str(score))
+            pdf.key_value("Verdict", verdict)
+            pdf.body_text(f"Explication : {expl}")
+            if disclaimer:
+                pdf.set_font("Times", "I", 9)
+                pdf.multi_cell(0, 5, _clean(disclaimer))
+            pdf.ln(2)
 
-         pdf.cell(200, 10, txt=f"Score de vérité : {score}", ln=True)
-         pdf.cell(200, 10, txt=f"Interprétation : {verdict}", ln=True)
-         pdf.multi_cell(0, 10, txt=f"Explication : {explanation}")
-         pdf.ln()
+        # ── 7. Analyse Q/R ────────────────────────────────────────────────────
+        if self.qa_analysis and "error" not in self.qa_analysis:
+            pdf.section_title("Analyse de pertinence Question / Reponse")
+            pdf.key_value("Question",   self.qa_analysis.get("question", "N/A"))
+            pdf.key_value("Reponse",    self.qa_analysis.get("response", "N/A"))
+            pdf.key_value("Similarite", str(self.qa_analysis.get("similarity_score", "N/A")))
+            pdf.key_value("Verdict",    self.qa_analysis.get("verdict", "N/A"))
+            pdf.body_text(self.qa_analysis.get("explanation", ""))
+            pdf.ln(2)
 
-         # ===== 6. Analyse de pertinence question/réponse =====
-        if self.qa_analysis:
-          pdf.set_font("Arial", style='B', size=12)
-          pdf.cell(200, 10, txt="Analyse de pertinence Q/R :", ln=True)
-          pdf.set_font("Arial", size=11)
-          question = self.qa_analysis.get("question", "N/A")
-          response = self.qa_analysis.get("response", "N/A")
-          similarity = self.qa_analysis.get("similarity_score", "N/A")
-          verdict = self.qa_analysis.get("verdict", "Indéterminé")
-          explanation = self.qa_analysis.get("explanation", "")
-    
-          pdf.multi_cell(0, 10, txt=f"Question : {question}")
-          pdf.multi_cell(0, 10, txt=f"Réponse : {response}")
-          pdf.cell(200, 10, txt=f"Similarité : {similarity}", ln=True)
-          pdf.cell(200, 10, txt=f"Verdict : {verdict}", ln=True)
-          pdf.multi_cell(0, 10, txt=f"Explication : {explanation}")
-          pdf.ln()
-
-        # Résumé comportemental
-        pdf.set_font("Times", style='B', size=12)
-        pdf.cell(200, 10, txt=" Résumé comportemental :", ln=True)
-        pdf.set_font("Times", size=11)
-        pdf.multi_cell(0, 10, txt=self.behavior_summary)
-        pdf.ln()
-
-         # ===== 5. Moments émotionnels forts =====
+        # ── 8. Frames émotionnelles fortes ────────────────────────────────────
         if self.top_emotion_frames:
-            pdf.set_font("Times",style='B' ,size=12)
-            pdf.cell(200, 10, txt=" Frames émotionnelles fortes :", ln=True)
-            pdf.set_font("Times", style='B', size=11)
+            pdf.section_title("Frames emotionnelles les plus expressives")
             for item in self.top_emotion_frames:
-                pdf.cell(200, 10, txt=f"{item['frame']} -> {item['dominant_emotion']} ({item['intensity']})", ln=True)
-            pdf.ln()
+                suspect_tag = " [!]"  if item.get("is_suspect")          else ""
+                derived_tag = " (inferee)" if item.get("is_derived_dominant") else ""
+                pdf.body_text(
+                    f"- {item['frame']} -> {item['dominant_emotion']}"
+                    f"{suspect_tag}{derived_tag} (intensite : {item['intensity']})"
+                )
+            pdf.ln(2)
 
-        # ===== 6. Détail frame par frame =====
-        pdf.set_font("Times", style='B', size=12)
-        pdf.cell(200, 10, txt=" Détail par frame :", ln=True)
-        pdf.ln()
-        
-        frames_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../temp_frames/"))  # Dossier contenant les frames extraites
-        for i, item in enumerate(self.results):  # Parcourt chaque résultat de frame
-            frame_filename = item.get('frame', f"frame_{i+1}.jpg") # Utilise le nom du fichier si présent
-            dominant = item.get("dominant_emotion", "N/A")
-            emotions = item.get("emotions", {})
+        # ── 9. Détail frame par frame ─────────────────────────────────────────
+        pdf.section_title("Detail par frame")
 
-             # Ajout de l'image de la frame si elle existe
-            frame_path = os.path.join(frames_dir, frame_filename)
-            if os.path.isfile(frame_path) and frame_path.lower().endswith(('.jpg', '.jpeg', '.png')):
-                pdf.image(frame_path, w=120)
-                pdf.ln(3)
+        for i, item in enumerate(self.results):
+            frame_filename = item.get("frame", f"frame_{i + 1}.jpg")
+            dominant       = item.get("dominant_emotion", "N/A")
+            emotions       = item.get("emotions", {})
+            derived        = item.get("derived_emotions", {})
+            is_suspect     = item.get("is_suspect", False)
 
-            pdf.ln()  # Saut de ligne après chaque frame
- 
-            pdf.cell(200, 10, txt=f"Frame {i+1} - {frame_filename}", ln=True)  # Nom de la frame
-            pdf.cell(200, 10, txt=f"  Emotion dominante : {dominant}", ln=True)  # Emotion dominante
-            for k, v in emotions.items():  # Parcourt chaque émotion et sa valeur
-                    pdf.cell(200, 10, txt=f"{k}: {v:.2f}", ln=True)  # Affiche l'émotion et son score
-            pdf.ln(5)
+            # Image de la frame si disponible
+            frame_path = os.path.join(FRAMES_FOLDER, frame_filename)
+            if os.path.isfile(frame_path) and \
+               frame_path.lower().endswith((".jpg", ".jpeg", ".png")):
+                if pdf.y > 200:
+                    pdf.add_page()
+                try:
+                    pdf.image(frame_path, w=100)
+                    pdf.ln(2)
+                except Exception:
+                    pass  # Image corrompue → on l'ignore sans crasher
 
-        pdf.output(output_path)  # Génère le fichier PDF à l'emplacement spécifié
+            suspect_tag = "  [!] Emotion suspecte" if is_suspect else ""
+            pdf.set_font("Times", "B", 10)
+            pdf.cell(0, 7,
+                     _clean(f"Frame {i + 1} - {frame_filename}{suspect_tag}"),
+                     ln=True)
+            pdf.set_font("Times", "", 10)
+            pdf.cell(0, 6,
+                     _clean(f"  Emotion dominante : {dominant}"),
+                     ln=True)
 
-   
+            for k, v in sorted(emotions.items(), key=lambda x: x[1], reverse=True):
+                pdf.cell(0, 5, f"    {_clean(k)} : {round(float(v), 2)}", ln=True)
+
+            if derived:
+                pdf.set_font("Times", "I", 9)
+                pdf.cell(0, 5, "  Emotions inferees (heuristique) :", ln=True)
+                for k, v in derived.items():
+                    pdf.cell(0, 5, f"    {_clean(k)} : {round(float(v), 2)}", ln=True)
+                pdf.set_font("Times", "", 10)
+
+            pdf.ln(4)
+
+        # ── 10. Limites de l'analyse ──────────────────────────────────────────
+        pdf.add_page()
+        pdf.section_title("Limites de l'analyse")
+        limits = [
+            "- Les emotions dites 'inferees' (nervous, excited, confused...) sont "
+            "calculees par des regles heuristiques et non detectees directement par "
+            "un modele entraine. Elles constituent des approximations.",
+
+            "- L'indicateur de sincerite repose sur des seuils empiriques non "
+            "calibres sur un corpus annote. Il ne constitue pas une preuve de "
+            "mensonge et ne doit pas etre utilise a des fins legales.",
+
+            "- L'analyse faciale peut etre affectee par la qualite video, "
+            "l'eclairage, l'angle de la camera et les occultations du visage.",
+
+            "- La transcription Whisper peut contenir des erreurs sur les noms "
+            "propres, les accents regionaux ou en environnement bruite.",
+
+            "- L'analyse de pertinence Q/R mesure une similarite semantique, "
+            "pas une verite factuelle.",
+
+            "- Ce systeme est un outil d'aide a l'analyse et non un systeme de "
+            "detection automatisee du mensonge. Toute interpretation doit etre "
+            "faite par un professionnel qualifie.",
+        ]
+        for limit in limits:
+            pdf.body_text(limit)
+            pdf.ln(1)
+
+        pdf.output(output_path)
