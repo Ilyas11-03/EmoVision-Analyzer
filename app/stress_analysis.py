@@ -1,13 +1,11 @@
 import os
-import subprocess
+import subprocess # CORRECTION : import subprocess pour l'extraction audio segmentée
 import numpy as np
 import librosa
 import soundfile as sf
 from typing import Optional
 
-
 # ── Constantes de normalisation ───────────────────────────────────────────────
-
 RMS_REF = 0.05
 ZCR_REF = 0.10
 
@@ -16,6 +14,8 @@ STRESS_WEIGHTS = {
     "zcr": 0.4,
 }
 
+PITCH_MIN = 50.0 # Hz — voix grave masculine
+PITCH_MAX = 400.0  # Hz — voix aiguë féminine
 
 # ── Extraction audio via ffmpeg ───────────────────────────────────────────────
 # CORRECTION : extraction segmentée avec gestion des erreurs via subprocess.
@@ -113,7 +113,7 @@ def extract_acoustic_features(audio_path: str, sample_rate: int = 22050) -> dict
 
         if len(y) == 0:
             return {"error": "Audio vide ou inaudible."}
-
+        
         # ── RMS ───────────────────────────────────────────────────────────────
         rms_frames = librosa.feature.rms(y=y)[0]
         rms_mean   = float(np.mean(rms_frames))
@@ -121,6 +121,13 @@ def extract_acoustic_features(audio_path: str, sample_rate: int = 22050) -> dict
         # ── Pitch ─────────────────────────────────────────────────────────────
         pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
         pitch_values = pitches[magnitudes > np.median(magnitudes)]
+
+        # CORRECTION : on ne garde que les pitchs dans la plage vocale humaine
+        pitch_values = pitch_values[
+            (pitch_values >= PITCH_MIN) &
+            (pitch_values <= PITCH_MAX)
+        ]
+
         pitch_mean   = float(pitch_values.mean()) if len(pitch_values) > 0 else 0.0
         pitch_std    = float(pitch_values.std())  if len(pitch_values) > 0 else 0.0
 

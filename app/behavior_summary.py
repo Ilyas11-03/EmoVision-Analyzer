@@ -42,8 +42,7 @@ SUMMARY_TEMPLATES = {
 }
 
 # ── Fonction principale ───────────────────────────────────────────────────────
-
-def generate_behavior_summary(emotion_results: List[dict]) -> str:
+def generate_behavior_summary(emotion_results, category_breakdown=None) -> str:
     """
     Génère un résumé textuel du comportement émotionnel global
     à partir de la liste complète des résultats frame par frame.
@@ -58,9 +57,6 @@ def generate_behavior_summary(emotion_results: List[dict]) -> str:
     Returns:
         str : Résumé comportemental en français.
     """
-    if not emotion_results:
-        return "Aucune émotion détectée de manière significative dans la vidéo."
-
     # ── 1. Collecter les émotions dominantes ──────────────────────────────────
     dominant_list = [
         r.get("dominant_emotion", "N/A")
@@ -73,19 +69,22 @@ def generate_behavior_summary(emotion_results: List[dict]) -> str:
 
     counter = Counter(dominant_list)
     total   = len(dominant_list)
+    top_3   = counter.most_common(3)
 
-    # ── 2. Top 3 émotions avec leur pourcentage ───────────────────────────────
-    top_3 = counter.most_common(3)
-
-    # ── 3. Catégorie dominante globale ───────────────────────────────────────
-    category_scores = {"positive": 0, "negative": 0, "neutral": 0}
-    for emotion, count in counter.items():
-        for category, labels in EMOTION_CATEGORIES.items():
-            if emotion.lower() in labels:
-                category_scores[category] += count
-                break
-
-    dominant_category = max(category_scores, key=category_scores.get)
+    # ── 2. Catégorie dominante globale ────────────────────────────────────────
+    # CORRECTION : category_breakdown fourni → on l'utilise directement
+    # Sinon on le calcule depuis emotion_results
+    if category_breakdown:
+        dominant_category = category_breakdown.get("dominant_category", "neutral")
+    else:
+        # Calcul local si category_breakdown non fourni
+        category_scores = {"positive": 0, "negative": 0, "neutral": 0}
+        for emotion, count in counter.items():
+            for category, labels in EMOTION_CATEGORIES.items():
+                if emotion.lower() in labels:
+                    category_scores[category] += count
+                    break
+        dominant_category = max(category_scores, key=category_scores.get)
 
     category_phrases = {
         "positive": "Le comportement général est plutôt positif et ouvert.",
@@ -93,9 +92,7 @@ def generate_behavior_summary(emotion_results: List[dict]) -> str:
         "neutral":  "Le comportement général est neutre et contrôlé.",
     }
 
-    # ── 4. Détection d'alternance émotionnelle (signal de stress) ─────────────
-    # Si plusieurs émotions de catégories différentes se succèdent fréquemment,
-    # c'est un indicateur de dissonance émotionnelle (pertinent pour le PFE).
+    # ── 3. Détection d'alternance émotionnelle ────────────────────────────────
     unique_categories_seen = set()
     for emotion in dominant_list:
         for cat, labels in EMOTION_CATEGORIES.items():
@@ -103,20 +100,15 @@ def generate_behavior_summary(emotion_results: List[dict]) -> str:
                 unique_categories_seen.add(cat)
                 break
 
-    alternance_note = ""
-    if len(unique_categories_seen) >= 2:
-        alternance_note = (
-            " Une alternance entre des émotions de polarités différentes "
-            "a été observée, ce qui peut indiquer une dissonance émotionnelle."
-        )
+    alternance_note = (
+        " Une alternance entre des émotions de polarités différentes "
+        "a été observée, ce qui peut indiquer une dissonance émotionnelle."
+        if len(unique_categories_seen) >= 2 else ""
+    )
 
-    # ── 5. Assemblage du résumé ───────────────────────────────────────────────
-    # lines = []
-
-    # Phrase d'introduction selon la catégorie dominante
+    # ── 4. Assemblage ─────────────────────────────────────────────────────────
     lines = [category_phrases[dominant_category]]
 
-    # Détail des top émotions
     for emotion, count in top_3:
         pct      = round(count / total * 100, 1)
         template = SUMMARY_TEMPLATES.get(
@@ -125,16 +117,14 @@ def generate_behavior_summary(emotion_results: List[dict]) -> str:
         )
         lines.append(f"• {template} ({pct}% des frames)")
 
-    # Note sur l'alternance émotionnelle
     if alternance_note:
         lines.append(alternance_note)
 
-    # Avertissement si les émotions dominantes sont dérivées
     top_emotion_name = top_3[0][0]
     if top_emotion_name in DERIVED_EMOTIONS:
         lines.append(
-            "⚠️ Note : l'émotion dominante est une valeur inférée par heuristique, "
-            "non détectée directement par le modèle de vision."
+            "Note : l'emotion dominante est une valeur inferee par heuristique, "
+            "non detectee directement par le modele de vision."
         )
 
     return "\n".join(lines)

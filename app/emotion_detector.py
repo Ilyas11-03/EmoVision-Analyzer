@@ -4,6 +4,9 @@ from deepface import DeepFace
 # ── Émotions primaires détectées directement par DeepFace ────────────────────
 PRIMARY_EMOTIONS = ["happy", "sad", "angry", "fear", "disgust", "neutral", "surprise"]
 
+# Ajouter un filtre de confiance minimale
+CONFIDENCE_THRESHOLD = 50.0  # Score minimum pour accepter le résultat
+
 # ── Émotions dérivées par heuristique (signalées comme telles) ───────────────
 # Ces valeurs sont des approximations, pas des détections directes.
 # Pondérations issues d'une approximation raisonnée — à mentionner dans le mémoire.
@@ -37,38 +40,48 @@ def detect_emotions_on_image(image_path: str) -> dict:
       marquées comme telles dans le résultat.
     - L'émotion dominante est déterminée uniquement sur les émotions primaires
       pour éviter que les valeurs dérivées ne biaisent le résultat.
+    - Les frames sans visage détecté avec confiance suffisante sont filtrées.
 
     Args:
         image_path : Chemin vers l'image à analyser.
 
     Returns:
         dict : {
-            "frame"            : str,   nom du fichier
-            "dominant_emotion" : str,   émotion primaire dominante
-            "emotions"         : dict,  scores primaires (DeepFace)
-            "derived_emotions" : dict,  scores dérivés (heuristique)
-            "is_suspect"       : bool,  True si dominante dans SUSPECT_EMOTIONS
-            "is_derived_dominant": bool, True si la dominante est dérivée
-            "error"            : str,   présent uniquement en cas d'erreur
+            "frame"              : str,  nom du fichier
+            "dominant_emotion"   : str,  émotion primaire dominante
+            "emotions"           : dict, scores primaires (DeepFace)
+            "derived_emotions"   : dict, scores dérivés (heuristique)
+            "is_suspect"         : bool, True si dominante dans SUSPECT_EMOTIONS
+            "is_derived_dominant": bool, True si la dominante globale est dérivée
         }
     """
     filename = _get_filename(image_path)
 
     try:
         result = DeepFace.analyze(
-            img_path=image_path,
-            actions=["emotion"],
-            enforce_detection=False  # Permet l'analyse même sans visage net
+            img_path          = image_path,
+            actions           = ["emotion"],
+            enforce_detection = False,
+            silent            = True
         )
 
+        # CORRECTION : vérification de la structure AVANT tout accès à result[0]
         if not isinstance(result, list) or len(result) == 0:
             return _empty_result(filename, reason="Aucun résultat retourné par DeepFace.")
 
         raw = result[0]
+
+        # CORRECTION : vérification face_confidence APRÈS validation de la structure
+        face_confidence = raw.get("face_confidence", 1.0)
+        if face_confidence < 0.5:
+            return _empty_result(
+                filename,
+                reason="Visage non détecté avec suffisamment de confiance."
+            )
+
         primary_emotions = raw.get("emotion", {})
 
         # Garder uniquement les émotions primaires reconnues
-        # CORRECTION : on ne modifie plus le dict primary_emotions directement
         primary_scores = {
             k: round(float(v), 2)
             for k, v in primary_emotions.items()
@@ -86,14 +99,12 @@ def detect_emotions_on_image(image_path: str) -> dict:
         }
 
         # ── Émotion dominante sur primaires uniquement ────────────────────────
-        # CORRECTION : la dominante est calculée sur les scores primaires seuls,
-        # les dérivées ne peuvent plus "gagner" artificiellement.
         dominant_emotion = max(primary_scores, key=primary_scores.get)
 
-        # Vérification si la dominante serait différente avec les dérivées
-        # (information utile pour la transparence du rapport)
-        all_scores = primary_scores | derived_scores
-        dominant_overall = max(all_scores, key=all_scores.get)
+        # Vérification transparence : la dominante serait-elle différente
+        # si on incluait les dérivées ?
+        all_scores          = primary_scores | derived_scores
+        dominant_overall    = max(all_scores, key=all_scores.get)
         is_derived_dominant = dominant_overall != dominant_emotion
 
         return {
@@ -107,8 +118,6 @@ def detect_emotions_on_image(image_path: str) -> dict:
 
     except Exception as e:
         return _empty_result(filename, reason=str(e))
-
-
 # ── Résultat vide standardisé ─────────────────────────────────────────────────
 
 def _empty_result(filename: str, reason: str = "") -> dict:

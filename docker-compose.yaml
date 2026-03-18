@@ -1,0 +1,34 @@
+version: '3.11'
+
+services:
+  streamlit-app:
+    build: .
+    container_name: streamlit_app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Montage d'un volume pour les données persistantes
+      - streamlit_data:/app/data
+      # Montage optionnel pour les fichiers de configuration
+      - ./config:/app/config:ro
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  streamlit_data:
+    # Utilisation d'un driver de volume (par défaut local)
+    driver: local
+    # Optionnel : spécifier un emplacement personnalisé pour les données
+    # driver_opts:
+    #   type: none
+    #   device: /chemin/vers/stockage/local
+    #   o: bind

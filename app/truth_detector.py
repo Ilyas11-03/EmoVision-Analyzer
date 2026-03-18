@@ -6,7 +6,7 @@ from typing import Optional
 
 # Seuils de stress vocal (à calibrer selon ton corpus)
 STRESS_THRESHOLD = 0.12   # Score de stress normalisé (issu de stress_analysis.py)
-PITCH_THRESHOLD  = 160.0  # Hz — fréquence vocale anormalement élevée
+PITCH_THRESHOLD  = 250.0  # Hz — fréquence vocale anormalement élevée
 
 # Émotions faciales considérées comme signaux de tension
 SUSPECT_EMOTIONS = ["fear", "nervous", "confused", "angry", "pain", "disgust","frustated","anxious"]
