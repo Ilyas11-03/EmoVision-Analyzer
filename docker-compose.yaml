@@ -1,4 +1,5 @@
-version: '3.11'
+# docker-compose.yaml
+# La ligne 'version' a été supprimée (obsolète)
 
 services:
   streamlit-app:
@@ -6,29 +7,35 @@ services:
     container_name: streamlit_app
     ports:
       - "8501:8501"
+    
     volumes:
-      # Montage d'un volume pour les données persistantes
+      # Données persistantes
       - streamlit_data:/app/data
-      # Montage optionnel pour les fichiers de configuration
+      # Configuration externe (lecture seule)
       - ./config:/app/config:ro
+    
     environment:
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - APP_ENV=production
+      - DATA_PATH=/app/data
+      - CONFIG_PATH=/app/config
       - STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+    
     restart: unless-stopped
+    
+    # Healthcheck
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 15s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   streamlit_data:
-    # Utilisation d'un driver de volume (par défaut local)
     driver: local
-    # Optionnel : spécifier un emplacement personnalisé pour les données
-    # driver_opts:
-    #   type: none
-    #   device: /chemin/vers/stockage/local
-    #   o: bind
