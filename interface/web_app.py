@@ -1,6 +1,5 @@
 import sys
 import os
-import shutil
 import altair as alt
 import pandas as pd
 import streamlit as st

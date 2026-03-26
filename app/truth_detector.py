@@ -9,7 +9,8 @@ STRESS_THRESHOLD = 0.12   # Score de stress normalisé (issu de stress_analysis.
 PITCH_THRESHOLD  = 250.0  # Hz — fréquence vocale anormalement élevée
 
 # Émotions faciales considérées comme signaux de tension
-SUSPECT_EMOTIONS = ["fear", "nervous", "confused", "angry", "pain", "disgust","frustated","anxious"]
+SUSPECT_EMOTIONS = ["fear", "nervous", "confused", "angry", "pain", "disgust","frustated","anxious","hate", "sick", "dizzy", "suspicious",
+    "embarrassed", "pouty"]
 
 # Pénalités sur le score de sincérité [0.0 – 1.0]
 # CORRECTION : documentées explicitement pour justification académique

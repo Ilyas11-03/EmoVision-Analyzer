@@ -39,6 +39,22 @@ SUMMARY_TEMPLATES = {
     "frustrated": "La personne manifeste des signes de frustration ou d'impatience. (émotion inférée)",
     "anxious":    "La personne semble anxieuse ou préoccupée. (émotion inférée)",
     "proud":      "La personne affiche une attitude confiante ou fière. (émotion inférée)",
+    "laughter":     "La personne manifeste une joie franche et expressive.",
+    "pouty":        "La personne semble bouder ou exprimer une légère contrariété.",
+    "sick":         "La personne semble éprouver un malaise ou de l'inconfort physique.",
+    "pain":         "La personne semble ressentir une douleur ou une détresse intense.",
+    "dizzy":        "La personne semble désorientée ou déstabilisée.",
+    "hate":         "La personne manifeste une forte aversion ou hostilité.",
+    "obligated":    "La personne semble agir par obligation sans conviction apparente.",
+    "daydreaming":  "La personne semble absente ou perdue dans ses pensées.",
+    "shy":          "La personne semble timide ou mal à l'aise face à la situation.",
+    "arrogant":     "La personne adopte une attitude distante ou supérieure.",
+    "adorable":     "La personne exprime une émotion douce et attendrissante.",
+    "focused":      "La personne semble concentrée et attentive.",
+    "thinking":     "La personne semble en train de réfléchir ou d'analyser.",
+    "suspicious":   "La personne manifeste de la méfiance ou du scepticisme.",
+    "tired":        "La personne semble fatiguée ou épuisée.",
+    "embarrassed":  "La personne semble gênée ou embarrassée.",
 }
 
 # ── Fonction principale ───────────────────────────────────────────────────────

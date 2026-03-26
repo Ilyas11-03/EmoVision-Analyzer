@@ -3,9 +3,9 @@ from typing import List, Tuple
 
 # ── Catégories d'émotions ─────────────────────────────────────────────────────
 EMOTION_CATEGORIES = {
-    "positive": ["happy", "excited", "smile", "laughter","proud"],
-    "negative": ["angry", "fear", "disgust", "sad", "nervous", "pain", "hate", "frustrated", "anxious"],
-    "neutral":  ["neutral", "confused", "surprise", "bored"],
+    "positive": ["happy", "excited", "smile", "laughter","proud","adorable","focused"],
+    "negative": ["angry", "fear", "disgust", "sad", "nervous", "pain", "hate", "frustrated", "anxious","pain","sick","dizzy","embarrassed","pouty","tired","suspicious"],
+    "neutral":  ["neutral", "confused", "surprise", "bored","obligated","daydreaming","shy","arrogant","thinking"],
 }
 
 # ── Fonction 1 : Frames les plus expressives ──────────────────────────────────

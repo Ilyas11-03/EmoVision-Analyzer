@@ -20,6 +20,60 @@ DERIVED_EMOTION_RULES = {
     "frustrated": lambda e: e.get("angry", 0) * 0.5 + e.get("disgust", 0) * 0.3,
     "anxious":    lambda e: e.get("fear", 0)  * 0.7 + e.get("neutral", 0) * 0.2,
     "proud":      lambda e: e.get("happy", 0) * 0.4 + e.get("surprise", 0) * 0.3,
+    "relieved":   lambda e: e.get("happy", 0) * 0.5 + e.get("neutral", 0) * 0.3,
+     # ── Émotions plus complexes (combinaisons heuristiques) ───────────────
+    # Rire franc — joie intense + surprise
+    "laughter":     lambda e: e.get("happy", 0)    * 0.7 + e.get("surprise", 0) * 0.2,
+
+    # Faire la moue — tristesse légère + dégoût subtil
+    "pouty":        lambda e: e.get("sad", 0)      * 0.5 + e.get("disgust", 0)  * 0.2,
+
+    # Malaise physique — dégoût dominant + tristesse
+    "sick":         lambda e: e.get("disgust", 0)  * 0.6 + e.get("sad", 0)      * 0.3,
+
+    # Douleur — peur + tristesse intenses
+    "pain":         lambda e: e.get("fear", 0)     * 0.5 + e.get("sad", 0)      * 0.4,
+
+    # Vertige/confusion — surprise + peur + neutral
+    "dizzy":        lambda e: e.get("surprise", 0) * 0.4 + e.get("fear", 0)     * 0.3
+                            + e.get("neutral", 0)  * 0.2,
+
+    # Haine — colère intense + dégoût
+    "hate":         lambda e: e.get("angry", 0)    * 0.6 + e.get("disgust", 0)  * 0.4,
+
+    # Sentiment d'obligation — neutral dominant + tristesse légère
+    "obligated":    lambda e: e.get("neutral", 0)  * 0.5 + e.get("sad", 0)      * 0.2,
+
+    # Rêverie — neutral dominant + légère joie
+    "daydreaming":  lambda e: e.get("neutral", 0)  * 0.6 + e.get("happy", 0)    * 0.2,
+
+    # Timidité — peur légère + neutral + surprise
+    "shy":          lambda e: e.get("fear", 0)     * 0.3 + e.get("neutral", 0)  * 0.3
+                            + e.get("surprise", 0) * 0.2,
+
+    # Arrogance — colère froide + neutral + dégoût
+    "arrogant":     lambda e: e.get("angry", 0)    * 0.3 + e.get("neutral", 0)  * 0.4
+                            + e.get("disgust", 0)  * 0.2,
+
+    # Attendrissement — joie douce + surprise légère
+    "adorable":     lambda e: e.get("happy", 0)    * 0.5 + e.get("surprise", 0) * 0.2,
+
+    # Concentration — neutral dominant, très peu d'autre
+    "focused":      lambda e: e.get("neutral", 0)  * 0.7,
+
+    # Réflexion — neutral + légère surprise
+    "thinking":     lambda e: e.get("neutral", 0)  * 0.5 + e.get("surprise", 0) * 0.2,
+
+    # Méfiance — peur + colère + dégoût
+    "suspicious":   lambda e: e.get("fear", 0)     * 0.3 + e.get("angry", 0)    * 0.3
+                            + e.get("disgust", 0)  * 0.3,
+
+    # Fatigue — neutral dominant + tristesse
+    "tired":        lambda e: e.get("neutral", 0)  * 0.5 + e.get("sad", 0)      * 0.3,
+
+    # Gêne/honte — peur + surprise + tristesse
+    "embarrassed":  lambda e: e.get("fear", 0)     * 0.3 + e.get("surprise", 0) * 0.3
+                            + e.get("sad", 0)      * 0.2,
 }
 
 # ── Émotions considérées comme "suspectes" (signaux de tension) ───────────────
