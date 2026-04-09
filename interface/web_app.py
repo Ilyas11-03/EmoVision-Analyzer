@@ -7,12 +7,16 @@ import streamlit as st
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.behavior_summary import (generate_behavior_summary,
-                                  get_emotion_distribution_summary)
+from app.behavior_summary import (
+    generate_behavior_summary,
+    get_emotion_distribution_summary,
+)
 from app.emotion_detector import detect_emotions_on_image
-from app.emotion_utils import (detect_emotional_dissonance,
-                               get_emotion_category_breakdown,
-                               get_top_emotion_frames)
+from app.emotion_utils import (
+    detect_emotional_dissonance,
+    get_emotion_category_breakdown,
+    get_top_emotion_frames,
+)
 from app.qa_analyzer import analyze_qa_relevance
 from app.report_generator import ReportGenerator
 from app.speech_to_text import transcribe_video
