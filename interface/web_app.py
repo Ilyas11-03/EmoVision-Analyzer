@@ -5,12 +5,16 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from app.behavior_summary import (generate_behavior_summary,
-                                  get_emotion_distribution_summary)
-from app.emotion_detector import detect_emotions_on_image
-from app.emotion_utils import (detect_emotional_dissonance,
-                               get_emotion_category_breakdown,
-                               get_top_emotion_frames)
+from app.behavior_summary import (
+    generate_behavior_summary,
+    get_emotion_distribution_summary,
+)
+from app.emotion_utils import (
+    detect_emotional_dissonance,
+    get_emotion_category_breakdown,
+    get_top_emotion_frames,
+)
+
 from app.qa_analyzer import analyze_qa_relevance
 from app.report_generator import ReportGenerator
 from app.speech_to_text import transcribe_video
