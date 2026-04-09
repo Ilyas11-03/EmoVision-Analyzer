@@ -409,7 +409,6 @@ def main():
         st.info(
             f"Vidéo chargée — Durée : {info['duration_sec']}s | "
             f"FPS : {info['fps']} | Résolution : {info['resolution']}"
-            f"Resolution : {info['resolution']}"
         )
     except Exception:
         pass
