@@ -1,27 +1,24 @@
-import sys
 import os
+import sys
+
 import altair as alt
 import pandas as pd
 import streamlit as st
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.video_processing import extract_frames, clear_frames, get_video_info
+from app.behavior_summary import (generate_behavior_summary,
+                                  get_emotion_distribution_summary)
 from app.emotion_detector import detect_emotions_on_image
-from app.emotion_utils import (
-    get_top_emotion_frames,
-    get_emotion_category_breakdown,
-    detect_emotional_dissonance,
-)
-from app.behavior_summary import (
-    generate_behavior_summary,
-    get_emotion_distribution_summary,
-)
-from app.stress_analysis import extract_audio_features, extract_stress_segment
-from app.truth_detector import analyze_truth_from_stress_and_emotion
-from app.speech_to_text import transcribe_video
+from app.emotion_utils import (detect_emotional_dissonance,
+                               get_emotion_category_breakdown,
+                               get_top_emotion_frames)
 from app.qa_analyzer import analyze_qa_relevance
 from app.report_generator import ReportGenerator
+from app.speech_to_text import transcribe_video
+from app.stress_analysis import extract_audio_features, extract_stress_segment
+from app.truth_detector import analyze_truth_from_stress_and_emotion
+from app.video_processing import clear_frames, extract_frames, get_video_info
 
 # ── Configuration de la page ──────────────────────────────────────────────────
 

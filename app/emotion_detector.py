@@ -1,4 +1,5 @@
 import os
+
 from deepface import DeepFace
 
 # ── Émotions primaires détectées directement par DeepFace ────────────────────

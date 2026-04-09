@@ -1,11 +1,12 @@
 import os
-from app.video_processing import extract_frames
+
 from app.emotion_detector import detect_emotions_on_image
 from app.emotion_utils import get_top_emotion_frames
-from app.stress_analysis import extract_audio_features, extract_stress_segment
 from app.qa_analyzer import analyze_qa_relevance
 from app.speech_to_text import transcribe_audio_whisper
+from app.stress_analysis import extract_audio_features, extract_stress_segment
 from app.truth_detector import analyze_truth_from_stress_and_emotion
+from app.video_processing import extract_frames
 
 # Dossier temporaire pour stocker les frames extraites
 TEMP_FRAMES_FOLDER = "temp_frames"

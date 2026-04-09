@@ -1,9 +1,10 @@
 import os
 import subprocess  # CORRECTION : import subprocess pour l'extraction audio segmentée
-import numpy as np
-import librosa
-import soundfile as sf
 from typing import Optional
+
+import librosa
+import numpy as np
+import soundfile as sf
 
 # ── Constantes de normalisation ───────────────────────────────────────────────
 RMS_REF = 0.05

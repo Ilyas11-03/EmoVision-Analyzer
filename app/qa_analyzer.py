@@ -1,5 +1,6 @@
 import threading
 from typing import Optional
+
 from sentence_transformers import SentenceTransformer, util
 
 # ── Chargement du modèle (singleton thread-safe) ──────────────────────────────

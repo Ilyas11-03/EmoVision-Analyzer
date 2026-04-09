@@ -1,7 +1,8 @@
 import os
-import tempfile
 import subprocess
+import tempfile
 from typing import Optional
+
 import whisper
 
 # ── Singleton Whisper (cache du modèle) ───────────────────────────────────────

@@ -1,6 +1,7 @@
 import os
-import cv2
 from typing import List
+
+import cv2
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 

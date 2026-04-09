@@ -1,9 +1,10 @@
-import os
-import json
 import csv
+import json
+import os
 from collections import Counter
 from datetime import datetime
 from typing import Optional
+
 from fpdf import FPDF
 
 # ── Constantes ────────────────────────────────────────────────────────────────
