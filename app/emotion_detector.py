@@ -11,78 +11,80 @@ CONFIDENCE_THRESHOLD = 50.0  # Score minimum pour accepter le résultat
 # Ces valeurs sont des approximations, pas des détections directes.
 # Pondérations issues d'une approximation raisonnée — à mentionner dans le mémoire.
 DERIVED_EMOTION_RULES = {
-    "excited":  lambda e: e.get("happy", 0) * 0.6,
-    "bored":    lambda e: e.get("sad", 0)   * 0.5,
+    "excited": lambda e: e.get("happy", 0) * 0.6,
+    "bored": lambda e: e.get("sad", 0) * 0.5,
     "confused": lambda e: e.get("neutral", 0) * 0.4,
-    "silly":    lambda e: e.get("happy", 0) * 0.3 + e.get("surprise", 0) * 0.2,
-    "nervous":  lambda e: e.get("fear", 0)  * 0.6 + e.get("surprise", 0) * 0.2,
-     # ── Nouvelles émotions ──────────────────────────────────────────────────
+    "silly": lambda e: e.get("happy", 0) * 0.3 + e.get("surprise", 0) * 0.2,
+    "nervous": lambda e: e.get("fear", 0) * 0.6 + e.get("surprise", 0) * 0.2,
+    # ── Nouvelles émotions ──────────────────────────────────────────────────
     "frustrated": lambda e: e.get("angry", 0) * 0.5 + e.get("disgust", 0) * 0.3,
-    "anxious":    lambda e: e.get("fear", 0)  * 0.7 + e.get("neutral", 0) * 0.2,
-    "proud":      lambda e: e.get("happy", 0) * 0.4 + e.get("surprise", 0) * 0.3,
-    "relieved":   lambda e: e.get("happy", 0) * 0.5 + e.get("neutral", 0) * 0.3,
-     # ── Émotions plus complexes (combinaisons heuristiques) ───────────────
+    "anxious": lambda e: e.get("fear", 0) * 0.7 + e.get("neutral", 0) * 0.2,
+    "proud": lambda e: e.get("happy", 0) * 0.4 + e.get("surprise", 0) * 0.3,
+    "relieved": lambda e: e.get("happy", 0) * 0.5 + e.get("neutral", 0) * 0.3,
+    # ── Émotions plus complexes (combinaisons heuristiques) ───────────────
     # Rire franc — joie intense + surprise
-    "laughter":     lambda e: e.get("happy", 0)    * 0.7 + e.get("surprise", 0) * 0.2,
-
+    "laughter": lambda e: e.get("happy", 0) * 0.7 + e.get("surprise", 0) * 0.2,
     # Faire la moue — tristesse légère + dégoût subtil
-    "pouty":        lambda e: e.get("sad", 0)      * 0.5 + e.get("disgust", 0)  * 0.2,
-
+    "pouty": lambda e: e.get("sad", 0) * 0.5 + e.get("disgust", 0) * 0.2,
     # Malaise physique — dégoût dominant + tristesse
-    "sick":         lambda e: e.get("disgust", 0)  * 0.6 + e.get("sad", 0)      * 0.3,
-
+    "sick": lambda e: e.get("disgust", 0) * 0.6 + e.get("sad", 0) * 0.3,
     # Douleur — peur + tristesse intenses
-    "pain":         lambda e: e.get("fear", 0)     * 0.5 + e.get("sad", 0)      * 0.4,
-
+    "pain": lambda e: e.get("fear", 0) * 0.5 + e.get("sad", 0) * 0.4,
     # Vertige/confusion — surprise + peur + neutral
-    "dizzy":        lambda e: e.get("surprise", 0) * 0.4 + e.get("fear", 0)     * 0.3
-                            + e.get("neutral", 0)  * 0.2,
-
+    "dizzy": lambda e: e.get("surprise", 0) * 0.4
+    + e.get("fear", 0) * 0.3
+    + e.get("neutral", 0) * 0.2,
     # Haine — colère intense + dégoût
-    "hate":         lambda e: e.get("angry", 0)    * 0.6 + e.get("disgust", 0)  * 0.4,
-
+    "hate": lambda e: e.get("angry", 0) * 0.6 + e.get("disgust", 0) * 0.4,
     # Sentiment d'obligation — neutral dominant + tristesse légère
-    "obligated":    lambda e: e.get("neutral", 0)  * 0.5 + e.get("sad", 0)      * 0.2,
-
+    "obligated": lambda e: e.get("neutral", 0) * 0.5 + e.get("sad", 0) * 0.2,
     # Rêverie — neutral dominant + légère joie
-    "daydreaming":  lambda e: e.get("neutral", 0)  * 0.6 + e.get("happy", 0)    * 0.2,
-
+    "daydreaming": lambda e: e.get("neutral", 0) * 0.6 + e.get("happy", 0) * 0.2,
     # Timidité — peur légère + neutral + surprise
-    "shy":          lambda e: e.get("fear", 0)     * 0.3 + e.get("neutral", 0)  * 0.3
-                            + e.get("surprise", 0) * 0.2,
-
+    "shy": lambda e: e.get("fear", 0) * 0.3
+    + e.get("neutral", 0) * 0.3
+    + e.get("surprise", 0) * 0.2,
     # Arrogance — colère froide + neutral + dégoût
-    "arrogant":     lambda e: e.get("angry", 0)    * 0.3 + e.get("neutral", 0)  * 0.4
-                            + e.get("disgust", 0)  * 0.2,
-
+    "arrogant": lambda e: e.get("angry", 0) * 0.3
+    + e.get("neutral", 0) * 0.4
+    + e.get("disgust", 0) * 0.2,
     # Attendrissement — joie douce + surprise légère
-    "adorable":     lambda e: e.get("happy", 0)    * 0.5 + e.get("surprise", 0) * 0.2,
-
+    "adorable": lambda e: e.get("happy", 0) * 0.5 + e.get("surprise", 0) * 0.2,
     # Concentration — neutral dominant, très peu d'autre
-    "focused":      lambda e: e.get("neutral", 0)  * 0.7,
-
+    "focused": lambda e: e.get("neutral", 0) * 0.7,
     # Réflexion — neutral + légère surprise
-    "thinking":     lambda e: e.get("neutral", 0)  * 0.5 + e.get("surprise", 0) * 0.2,
-
+    "thinking": lambda e: e.get("neutral", 0) * 0.5 + e.get("surprise", 0) * 0.2,
     # Méfiance — peur + colère + dégoût
-    "suspicious":   lambda e: e.get("fear", 0)     * 0.3 + e.get("angry", 0)    * 0.3
-                            + e.get("disgust", 0)  * 0.3,
-
+    "suspicious": lambda e: e.get("fear", 0) * 0.3
+    + e.get("angry", 0) * 0.3
+    + e.get("disgust", 0) * 0.3,
     # Fatigue — neutral dominant + tristesse
-    "tired":        lambda e: e.get("neutral", 0)  * 0.5 + e.get("sad", 0)      * 0.3,
-
+    "tired": lambda e: e.get("neutral", 0) * 0.5 + e.get("sad", 0) * 0.3,
     # Gêne/honte — peur + surprise + tristesse
-    "embarrassed":  lambda e: e.get("fear", 0)     * 0.3 + e.get("surprise", 0) * 0.3
-                            + e.get("sad", 0)      * 0.2,
+    "embarrassed": lambda e: e.get("fear", 0) * 0.3
+    + e.get("surprise", 0) * 0.3
+    + e.get("sad", 0) * 0.2,
 }
 
 # ── Émotions considérées comme "suspectes" (signaux de tension) ───────────────
-SUSPECT_EMOTIONS = ["nervous", "fear", "confused", "pain", "angry", "disgust", "hate", "frustrated", "anxious"]
+SUSPECT_EMOTIONS = [
+    "nervous",
+    "fear",
+    "confused",
+    "pain",
+    "angry",
+    "disgust",
+    "hate",
+    "frustrated",
+    "anxious",
+]
+
 
 # ── Utilitaire : extraction du nom de fichier cross-platform ─────────────────
 def _get_filename(path: str) -> str:
     """Extrait le nom de fichier de manière fiable sur Windows et Linux."""
     return os.path.basename(path)
+
 
 # ── Fonction principale ───────────────────────────────────────────────────────
 def detect_emotions_on_image(image_path: str) -> dict:
@@ -113,15 +115,17 @@ def detect_emotions_on_image(image_path: str) -> dict:
 
     try:
         result = DeepFace.analyze(
-            img_path          = image_path,
-            actions           = ["emotion"],
-            enforce_detection = False,
-            silent            = True
+            img_path=image_path,
+            actions=["emotion"],
+            enforce_detection=False,
+            silent=True,
         )
 
         # CORRECTION : vérification de la structure AVANT tout accès à result[0]
         if not isinstance(result, list) or len(result) == 0:
-            return _empty_result(filename, reason="Aucun résultat retourné par DeepFace.")
+            return _empty_result(
+                filename, reason="Aucun résultat retourné par DeepFace."
+            )
 
         raw = result[0]
 
@@ -129,8 +133,7 @@ def detect_emotions_on_image(image_path: str) -> dict:
         face_confidence = raw.get("face_confidence", 1.0)
         if face_confidence < 0.5:
             return _empty_result(
-                filename,
-                reason="Visage non détecté avec suffisamment de confiance."
+                filename, reason="Visage non détecté avec suffisamment de confiance."
             )
 
         primary_emotions = raw.get("emotion", {})
@@ -157,37 +160,41 @@ def detect_emotions_on_image(image_path: str) -> dict:
 
         # Vérification transparence : la dominante serait-elle différente
         # si on incluait les dérivées ?
-        all_scores          = primary_scores | derived_scores
-        dominant_overall    = max(all_scores, key=all_scores.get)
+        all_scores = primary_scores | derived_scores
+        dominant_overall = max(all_scores, key=all_scores.get)
         is_derived_dominant = dominant_overall != dominant_emotion
 
         return {
-            "frame":               filename,
-            "dominant_emotion":    dominant_emotion,
-            "emotions":            primary_scores,
-            "derived_emotions":    derived_scores,
-            "is_suspect":          dominant_emotion in SUSPECT_EMOTIONS,
+            "frame": filename,
+            "dominant_emotion": dominant_emotion,
+            "emotions": primary_scores,
+            "derived_emotions": derived_scores,
+            "is_suspect": dominant_emotion in SUSPECT_EMOTIONS,
             "is_derived_dominant": is_derived_dominant,
         }
 
     except Exception as e:
         return _empty_result(filename, reason=str(e))
+
+
 # ── Résultat vide standardisé ─────────────────────────────────────────────────
+
 
 def _empty_result(filename: str, reason: str = "") -> dict:
     """Retourne un résultat vide standardisé en cas d'échec."""
     return {
-        "frame":               filename,
-        "dominant_emotion":    "N/A",
-        "emotions":            {},
-        "derived_emotions":    {},
-        "is_suspect":          False,
+        "frame": filename,
+        "dominant_emotion": "N/A",
+        "emotions": {},
+        "derived_emotions": {},
+        "is_suspect": False,
         "is_derived_dominant": False,
-        "error":               reason,
+        "error": reason,
     }
 
 
 # ── Fonction utilitaire : analyse d'un lot d'images ──────────────────────────
+
 
 def detect_emotions_batch(image_paths: list) -> list:
     """

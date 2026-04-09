@@ -10,6 +10,7 @@ import whisper
 
 _whisper_cache: dict = {}
 
+
 def _get_whisper_model(model_size: str = "base") -> whisper.Whisper:
     """
     Retourne le modèle Whisper en cache.
@@ -28,10 +29,9 @@ def _get_whisper_model(model_size: str = "base") -> whisper.Whisper:
 
 # ── Extraction audio depuis une vidéo ─────────────────────────────────────────
 
+
 def extract_audio_from_video(
-    video_path: str,
-    output_audio_path: Optional[str] = None,
-    sample_rate: int = 16000
+    video_path: str, output_audio_path: Optional[str] = None, sample_rate: int = 16000
 ) -> str:
     """
     Extrait l'audio d'une vidéo en mono WAV via ffmpeg.
@@ -62,19 +62,19 @@ def extract_audio_from_video(
         tmp.close()
 
     command = [
-        "ffmpeg", "-y",
-        "-i",  video_path,
-        "-ac", "1",               # Mono
-        "-ar", str(sample_rate),  # Fréquence d'échantillonnage
-        "-vn",                    # Ignore la piste vidéo
-        output_audio_path
+        "ffmpeg",
+        "-y",
+        "-i",
+        video_path,
+        "-ac",
+        "1",  # Mono
+        "-ar",
+        str(sample_rate),  # Fréquence d'échantillonnage
+        "-vn",  # Ignore la piste vidéo
+        output_audio_path,
     ]
 
-    result = subprocess.run(
-        command,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE
-    )
+    result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
     # CORRECTION : vérification du code de retour ffmpeg
     if result.returncode != 0:
@@ -88,10 +88,9 @@ def extract_audio_from_video(
 
 # ── Transcription d'un fichier audio ──────────────────────────────────────────
 
+
 def transcribe_audio_whisper(
-    audio_path: str,
-    model_size: str = "base",
-    language: Optional[str] = "fr"
+    audio_path: str, model_size: str = "base", language: Optional[str] = "fr"
 ) -> str:
     """
     Transcrit un fichier audio en texte via Whisper.
@@ -130,10 +129,9 @@ def transcribe_audio_whisper(
 
 # ── Pipeline complet vidéo → texte ────────────────────────────────────────────
 
+
 def transcribe_video(
-    video_path: str,
-    model_size: str = "base",
-    language: Optional[str] = "fr"
+    video_path: str, model_size: str = "base", language: Optional[str] = "fr"
 ) -> str:
     """
     Pipeline complet : extrait l'audio d'une vidéo puis le transcrit en texte.
@@ -160,10 +158,9 @@ def transcribe_video(
 
 # ── Transcription avec métadonnées (timestamps) ───────────────────────────────
 
+
 def transcribe_video_with_segments(
-    video_path: str,
-    model_size: str = "base",
-    language: Optional[str] = "fr"
+    video_path: str, model_size: str = "base", language: Optional[str] = "fr"
 ) -> dict:
     """
     Transcrit une vidéo et retourne le texte complet ainsi que
@@ -187,7 +184,7 @@ def transcribe_video_with_segments(
     audio_path = None
     try:
         audio_path = extract_audio_from_video(video_path)
-        model      = _get_whisper_model(model_size)
+        model = _get_whisper_model(model_size)
 
         transcribe_kwargs = {"task": "transcribe"}
         if language:
@@ -198,14 +195,14 @@ def transcribe_video_with_segments(
         segments = [
             {
                 "start": round(seg["start"], 2),
-                "end":   round(seg["end"],   2),
-                "text":  seg["text"].strip(),
+                "end": round(seg["end"], 2),
+                "text": seg["text"].strip(),
             }
             for seg in result.get("segments", [])
         ]
 
         return {
-            "text":     result.get("text", "").strip(),
+            "text": result.get("text", "").strip(),
             "segments": segments,
             "language": result.get("language", "unknown"),
         }

@@ -10,9 +10,15 @@ from app.truth_detector import analyze_truth_from_stress_and_emotion
 # Dossier temporaire pour stocker les frames extraites
 TEMP_FRAMES_FOLDER = "temp_frames"
 
+
 # Pipeline principal — orchestre toutes les analyses (faciale, vocale, transcription, Q/R, sincérité) et retourne un dict complet des résultats
-def analyze_video(video_path: str, question: str = None, response: str = None,
-                  start_time: float = None, end_time: float = None) -> dict:
+def analyze_video(
+    video_path: str,
+    question: str = None,
+    response: str = None,
+    start_time: float = None,
+    end_time: float = None,
+) -> dict:
     """
     Pipeline complet d'analyse comportementale d'une vidéo.
 
@@ -46,7 +52,8 @@ def analyze_video(video_path: str, question: str = None, response: str = None,
     ]
     global_dominant_emotion = (
         max(set(dominant_emotions), key=dominant_emotions.count)
-        if dominant_emotions else "neutral"
+        if dominant_emotions
+        else "neutral"
     )
 
     # ── 2. Analyse du stress vocal ────────────────────────────────────────────
@@ -77,8 +84,8 @@ def analyze_video(video_path: str, question: str = None, response: str = None,
     truth = analyze_truth_from_stress_and_emotion(stress, global_dominant_emotion)
 
     return {
-        "emotion_results": emotion_results,       # Détail frame par frame
-        "top_emotion_frames": top_frames,          # Frames les plus expressives
+        "emotion_results": emotion_results,  # Détail frame par frame
+        "top_emotion_frames": top_frames,  # Frames les plus expressives
         "global_dominant_emotion": global_dominant_emotion,
         "stress_analysis": stress,
         "transcript": transcript,

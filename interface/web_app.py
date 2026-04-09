@@ -4,7 +4,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.video_processing import extract_frames, clear_frames, get_video_info
 from app.emotion_detector import detect_emotions_on_image
@@ -13,7 +13,10 @@ from app.emotion_utils import (
     get_emotion_category_breakdown,
     detect_emotional_dissonance,
 )
-from app.behavior_summary import generate_behavior_summary, get_emotion_distribution_summary
+from app.behavior_summary import (
+    generate_behavior_summary,
+    get_emotion_distribution_summary,
+)
 from app.stress_analysis import extract_audio_features, extract_stress_segment
 from app.truth_detector import analyze_truth_from_stress_and_emotion
 from app.speech_to_text import transcribe_video
@@ -22,20 +25,17 @@ from app.report_generator import ReportGenerator
 
 # ── Configuration de la page ──────────────────────────────────────────────────
 
-st.set_page_config(
-    page_title="Analyse Comportementale",
-    page_icon="🎭",
-    layout="wide"
-)
+st.set_page_config(page_title="Analyse Comportementale", page_icon="🎭", layout="wide")
 
-TEMP_VIDEO   = "temp_video.mp4"
-TEMP_FRAMES  = "temp_frames"
-REPORT_CSV   = "report_summary.csv"
-REPORT_JSON  = "report.json"
-REPORT_PDF   = "report.pdf"
+TEMP_VIDEO = "temp_video.mp4"
+TEMP_FRAMES = "temp_frames"
+REPORT_CSV = "report_summary.csv"
+REPORT_JSON = "report.json"
+REPORT_PDF = "report.pdf"
 
 
 # ── Utilitaires ───────────────────────────────────────────────────────────────
+
 
 def cleanup_temp_files():
     """Supprime les fichiers temporaires entre deux analyses."""
@@ -54,6 +54,7 @@ def save_uploaded_video(uploaded_file) -> str:
 
 # ── Section : Analyse faciale ─────────────────────────────────────────────────
 
+
 def run_facial_analysis(video_path: str, fps: float) -> list:
     """
     Extrait les frames et détecte les émotions.
@@ -67,7 +68,9 @@ def run_facial_analysis(video_path: str, fps: float) -> list:
         st.error("Aucune frame extraite. Vérifiez la vidéo uploadée.")
         return []
 
-    st.info(f"{len(frame_paths)} frame(s) extraite(s) — détection des émotions en cours...")
+    st.info(
+        f"{len(frame_paths)} frame(s) extraite(s) — détection des émotions en cours..."
+    )
 
     results = []
     progress = st.progress(0)
@@ -84,6 +87,7 @@ def run_facial_analysis(video_path: str, fps: float) -> list:
 
 # ── Section : Analyse vocale ──────────────────────────────────────────────────
 
+
 def run_vocal_analysis(video_path: str) -> dict:
     with st.spinner("Analyse vocale en cours..."):
         voice_results = extract_audio_features(video_path)
@@ -97,6 +101,7 @@ def run_vocal_analysis(video_path: str) -> dict:
 
 
 # ── Section : Sincérité ───────────────────────────────────────────────────────
+
 
 def run_truth_analysis(video_path: str, top_emotion_frames: list) -> dict:
     """
@@ -120,13 +125,12 @@ def run_truth_analysis(video_path: str, top_emotion_frames: list) -> dict:
         truth_stress = extract_stress_segment(video_path, start_sec, end_sec)
 
     base_emotion = (
-        top_emotion_frames[0]["dominant_emotion"]
-        if top_emotion_frames else "neutral"
+        top_emotion_frames[0]["dominant_emotion"] if top_emotion_frames else "neutral"
     )
     truth_analysis = analyze_truth_from_stress_and_emotion(truth_stress, base_emotion)
 
     # Affichage
-    score   = truth_analysis.get("truth_score", "N/A")
+    score = truth_analysis.get("truth_score", "N/A")
     verdict = truth_analysis.get("verdict", "Indéterminé")
 
     # CORRECTION : indicateur visuel selon le score
@@ -149,6 +153,7 @@ def run_truth_analysis(video_path: str, top_emotion_frames: list) -> dict:
 
 
 # ── Section : Analyse Q/R ─────────────────────────────────────────────────────
+
 
 def run_qa_analysis(video_path: str) -> dict:
     """
@@ -177,13 +182,21 @@ def run_qa_analysis(video_path: str) -> dict:
     # CORRECTION : couleur selon le niveau de confiance
     level = relevance.get("confidence_level", "none")
     if level == "high":
-        st.success(f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})")
+        st.success(
+            f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})"
+        )
     elif level == "medium":
-        st.info(f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})")
+        st.info(
+            f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})"
+        )
     elif level == "low":
-        st.warning(f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})")
+        st.warning(
+            f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})"
+        )
     else:
-        st.error(f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})")
+        st.error(
+            f"**{relevance['verdict']}** (similarité : {relevance['similarity_score']})"
+        )
 
     st.caption(relevance.get("explanation", ""))
 
@@ -191,6 +204,7 @@ def run_qa_analysis(video_path: str) -> dict:
 
 
 # ── Section : Visualisations ──────────────────────────────────────────────────
+
 
 def show_emotion_chart(results: list):
     """
@@ -203,11 +217,13 @@ def show_emotion_chart(results: list):
     emotion_rows = []
     for idx, r in enumerate(results):
         for emotion, score in r.get("emotions", {}).items():
-            emotion_rows.append({
-                "Frame":   idx,
-                "Emotion": emotion,
-                "Score":   round(float(score), 2),
-            })
+            emotion_rows.append(
+                {
+                    "Frame": idx,
+                    "Emotion": emotion,
+                    "Score": round(float(score), 2),
+                }
+            )
 
     if not emotion_rows:
         st.warning("Aucune émotion détectée à tracer.")
@@ -224,7 +240,7 @@ def show_emotion_chart(results: list):
         .mark_line(point=True)
         .encode(
             x=alt.X("FrameGroup:Q", title=f"Frame (groupes de {group_size})"),
-            y=alt.Y("Score:Q",      title="Score moyen (%)"),
+            y=alt.Y("Score:Q", title="Score moyen (%)"),
             color=alt.Color("Emotion:N", title="Émotion"),
             tooltip=["FrameGroup", "Emotion", "Score"],
         )
@@ -240,11 +256,13 @@ def show_category_breakdown(category_breakdown: dict):
         return
 
     st.subheader("📊 Répartition émotionnelle globale")
-    df_cat = pd.DataFrame([
-        {"Catégorie": k.capitalize(), "Pourcentage": v}
-        for k, v in category_breakdown.items()
-        if k != "dominant_category"
-    ])
+    df_cat = pd.DataFrame(
+        [
+            {"Catégorie": k.capitalize(), "Pourcentage": v}
+            for k, v in category_breakdown.items()
+            if k != "dominant_category"
+        ]
+    )
 
     chart = (
         alt.Chart(df_cat)
@@ -252,10 +270,13 @@ def show_category_breakdown(category_breakdown: dict):
         .encode(
             x=alt.X("Catégorie:N", title="Catégorie"),
             y=alt.Y("Pourcentage:Q", title="%"),
-            color=alt.Color("Catégorie:N", scale=alt.Scale(
-                domain=["Positive", "Negative", "Neutral"],
-                range=["#2ecc71", "#e74c3c", "#95a5a6"]
-            )),
+            color=alt.Color(
+                "Catégorie:N",
+                scale=alt.Scale(
+                    domain=["Positive", "Negative", "Neutral"],
+                    range=["#2ecc71", "#e74c3c", "#95a5a6"],
+                ),
+            ),
             tooltip=["Catégorie", "Pourcentage"],
         )
         .properties(width=400, height=300)
@@ -285,10 +306,16 @@ def show_frames_grid(results: list):
 
 # ── Section : Rapport ─────────────────────────────────────────────────────────
 
+
 def generate_and_download_reports(
-    results, voice_results, top_emotion_frames,
-    behavior_summary, truth_analysis, qa_result,
-    dissonance, category_breakdown
+    results,
+    voice_results,
+    top_emotion_frames,
+    behavior_summary,
+    truth_analysis,
+    qa_result,
+    dissonance,
+    category_breakdown,
 ):
     """
     CORRECTION : ReportGenerator reçoit maintenant tous les paramètres
@@ -319,25 +346,26 @@ def generate_and_download_reports(
             "⬇️ Télécharger CSV",
             open(REPORT_CSV, "rb"),
             file_name=REPORT_CSV,
-            mime="text/csv"
+            mime="text/csv",
         )
     with col2:
         st.download_button(
             "⬇️ Télécharger JSON",
             open(REPORT_JSON, "rb"),
             file_name=REPORT_JSON,
-            mime="application/json"
+            mime="application/json",
         )
     with col3:
         st.download_button(
             "⬇️ Télécharger PDF",
             open(REPORT_PDF, "rb"),
             file_name=REPORT_PDF,
-            mime="application/pdf"
+            mime="application/pdf",
         )
 
 
 # ── Application principale ────────────────────────────────────────────────────
+
 
 def main():
 
@@ -352,8 +380,11 @@ def main():
         st.header("⚙️ Paramètres")
         fps = st.slider(
             "Fréquence d'extraction (frames/sec)",
-            min_value=0.1, max_value=2.0, value=0.3, step=0.1,
-            help="0.3 = 1 frame toutes les 3 secondes"
+            min_value=0.1,
+            max_value=2.0,
+            value=0.3,
+            step=0.1,
+            help="0.3 = 1 frame toutes les 3 secondes",
         )
         st.markdown("---")
         st.caption(
@@ -364,8 +395,7 @@ def main():
 
     # ── Upload vidéo ──────────────────────────────────────────────────────────
     uploaded_video = st.file_uploader(
-        "📁 Uploader une vidéo d'entretien",
-        type=["mp4", "avi", "mov", "mkv"]
+        "📁 Uploader une vidéo d'entretien", type=["mp4", "avi", "mov", "mkv"]
     )
 
     if not uploaded_video:
@@ -396,9 +426,9 @@ def main():
     # Calculs globaux
     top_emotion_frames = get_top_emotion_frames(results, top_n=5)
     category_breakdown = get_emotion_category_breakdown(results)
-    dissonance         = detect_emotional_dissonance(results)
-    behavior_summary   = generate_behavior_summary(results)
-    dist_summary       = get_emotion_distribution_summary(results)
+    dissonance = detect_emotional_dissonance(results)
+    behavior_summary = generate_behavior_summary(results)
+    dist_summary = get_emotion_distribution_summary(results)
 
     # Résumé comportemental
     st.subheader("📝 Résumé comportemental")
@@ -416,10 +446,10 @@ def main():
 
     if voice_results and "error" not in voice_results:
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Stress score",  voice_results.get("stress_score", "N/A"))
-        col2.metric("Pitch moyen",   f"{voice_results.get('pitch_mean', 0):.1f} Hz")
-        col3.metric("RMS",           f"{voice_results.get('rms', 0):.4f}")
-        col4.metric("ZCR",           f"{voice_results.get('zcr', 0):.4f}")
+        col1.metric("Stress score", voice_results.get("stress_score", "N/A"))
+        col2.metric("Pitch moyen", f"{voice_results.get('pitch_mean', 0):.1f} Hz")
+        col3.metric("RMS", f"{voice_results.get('rms', 0):.4f}")
+        col4.metric("ZCR", f"{voice_results.get('zcr', 0):.4f}")
 
     # ── Sincérité ─────────────────────────────────────────────────────────────
     st.header("🧠 Sincérité")
@@ -438,9 +468,14 @@ def main():
     # ── Rapports ──────────────────────────────────────────────────────────────
     st.header("📄 Rapports")
     generate_and_download_reports(
-        results, voice_results, top_emotion_frames,
-        behavior_summary, truth_analysis, qa_result,
-        dissonance, category_breakdown
+        results,
+        voice_results,
+        top_emotion_frames,
+        behavior_summary,
+        truth_analysis,
+        qa_result,
+        dissonance,
+        category_breakdown,
     )
 
 

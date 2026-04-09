@@ -4,15 +4,13 @@ from typing import List
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
-DEFAULT_FPS    = 0.3   # 1 frame toutes les ~3 secondes
-FRAME_FORMAT   = "jpg" # Format de fichier pour les frames extraites (jpg ou png)
+DEFAULT_FPS = 0.3  # 1 frame toutes les ~3 secondes
+FRAME_FORMAT = "jpg"  # Format de fichier pour les frames extraites (jpg ou png)
 
 
 # ── Fonction principale ───────────────────────────────────────────────────────
 def extract_frames(
-    video_path:     str,
-    output_folder:  str,
-    fps:            float = DEFAULT_FPS
+    video_path: str, output_folder: str, fps: float = DEFAULT_FPS
 ) -> List[str]:
     """
     Extrait des frames d'une vidéo à intervalle régulier.
@@ -59,14 +57,14 @@ def extract_frames(
         frame_interval = max(1, int(round(video_fps / fps)))
 
         frame_paths: List[str] = []
-        count  = 0
-        saved  = 0
+        count = 0
+        saved = 0
 
         success, image = vidcap.read()
 
         while success:
             if count % frame_interval == 0:
-                filename   = f"frame_{saved:04d}.{FRAME_FORMAT}"
+                filename = f"frame_{saved:04d}.{FRAME_FORMAT}"
                 frame_path = os.path.join(output_folder, filename)
                 cv2.imwrite(frame_path, image)
                 # CORRECTION : on accumule le chemin absolu de chaque frame
@@ -84,6 +82,7 @@ def extract_frames(
 
 
 # ── Nettoyage des frames temporaires ─────────────────────────────────────────
+
 
 def clear_frames(output_folder: str):
     """
@@ -111,6 +110,7 @@ def clear_frames(output_folder: str):
 
 # ── Informations sur la vidéo ─────────────────────────────────────────────────
 
+
 def get_video_info(video_path: str) -> dict:
     """
     Retourne les métadonnées principales d'une vidéo.
@@ -135,20 +135,19 @@ def get_video_info(video_path: str) -> dict:
 
     vidcap = cv2.VideoCapture(video_path)
     try:
-        fps          = vidcap.get(cv2.CAP_PROP_FPS)
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
         total_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-        width        = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height       = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         duration_sec = round(total_frames / fps, 2) if fps > 0 else 0.0
 
         return {
-            "duration_sec":  duration_sec,
-            "fps":           round(fps, 2),
-            "total_frames":  total_frames,
-            "width":         width,
-            "height":        height,
-            "resolution":    f"{width}x{height}",
+            "duration_sec": duration_sec,
+            "fps": round(fps, 2),
+            "total_frames": total_frames,
+            "width": width,
+            "height": height,
+            "resolution": f"{width}x{height}",
         }
     finally:
         vidcap.release()
-

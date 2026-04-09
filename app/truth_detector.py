@@ -5,35 +5,49 @@ from typing import Optional
 # la calibration future sur un corpus annoté.
 
 # Seuils de stress vocal (à calibrer selon ton corpus)
-STRESS_THRESHOLD = 0.12   # Score de stress normalisé (issu de stress_analysis.py)
-PITCH_THRESHOLD  = 250.0  # Hz — fréquence vocale anormalement élevée
+STRESS_THRESHOLD = 0.12  # Score de stress normalisé (issu de stress_analysis.py)
+PITCH_THRESHOLD = 250.0  # Hz — fréquence vocale anormalement élevée
 
 # Émotions faciales considérées comme signaux de tension
-SUSPECT_EMOTIONS = ["fear", "nervous", "confused", "angry", "pain", "disgust","frustated","anxious","hate", "sick", "dizzy", "suspicious",
-    "embarrassed", "pouty"]
+SUSPECT_EMOTIONS = [
+    "fear",
+    "nervous",
+    "confused",
+    "angry",
+    "pain",
+    "disgust",
+    "frustated",
+    "anxious",
+    "hate",
+    "sick",
+    "dizzy",
+    "suspicious",
+    "embarrassed",
+    "pouty",
+]
 
 # Pénalités sur le score de sincérité [0.0 – 1.0]
 # CORRECTION : documentées explicitement pour justification académique
 PENALTIES = {
     "emotion_suspecte": 0.30,
-    "stress_eleve":     0.40,
-    "pitch_eleve":      0.20,
+    "stress_eleve": 0.40,
+    "pitch_eleve": 0.20,
 }
 
 # Seuils d'interprétation du score final
 VERDICT_THRESHOLDS = {
-    "tres_sincere":   0.80,
+    "tres_sincere": 0.80,
     "plutot_sincere": 0.50,
-    "suspect":        0.30,
+    "suspect": 0.30,
     # En dessous de 0.30 → tension forte détectée
 }
 
 
 # ── Fonction principale ───────────────────────────────────────────────────────
 
+
 def analyze_truth_from_stress_and_emotion(
-    stress_data:     dict,
-    emotion_label:   Optional[str] = None
+    stress_data: dict, emotion_label: Optional[str] = None
 ) -> dict:
     """
     Calcule un indicateur de sincérité basé sur la combinaison de :
@@ -72,36 +86,36 @@ def analyze_truth_from_stress_and_emotion(
 
     # ── Extraction des signaux ────────────────────────────────────────────────
     stress_score = float(stress_data.get("stress_score", 0.0))
-    pitch_mean   = float(stress_data.get("pitch_mean",   0.0))
-    emotion      = (emotion_label or "unknown").lower().strip()
+    pitch_mean = float(stress_data.get("pitch_mean", 0.0))
+    emotion = (emotion_label or "unknown").lower().strip()
 
     # ── Détection des signaux suspects ────────────────────────────────────────
     emotion_suspecte = emotion in SUSPECT_EMOTIONS
-    stress_eleve     = stress_score > STRESS_THRESHOLD
-    pitch_eleve      = pitch_mean   > PITCH_THRESHOLD
+    stress_eleve = stress_score > STRESS_THRESHOLD
+    pitch_eleve = pitch_mean > PITCH_THRESHOLD
 
     signals_detected = {
         "emotion_suspecte": {
             "detected": emotion_suspecte,
-            "value":    emotion,
+            "value": emotion,
             "reference": f"émotion dans {SUSPECT_EMOTIONS}",
         },
         "stress_eleve": {
             "detected": stress_eleve,
-            "value":    round(stress_score, 3),
+            "value": round(stress_score, 3),
             "reference": f"> {STRESS_THRESHOLD}",
         },
         "pitch_eleve": {
             "detected": pitch_eleve,
-            "value":    round(pitch_mean, 1),
+            "value": round(pitch_mean, 1),
             "reference": f"> {PITCH_THRESHOLD} Hz",
         },
     }
 
     # ── Calcul du score avec pénalités ────────────────────────────────────────
     # CORRECTION : variable renommée (accent supprimé sur pitch_élevé)
-    score              = 1.0
-    penalties_applied  = {}
+    score = 1.0
+    penalties_applied = {}
 
     if emotion_suspecte:
         score -= PENALTIES["emotion_suspecte"]
@@ -121,25 +135,23 @@ def analyze_truth_from_stress_and_emotion(
     # ── Verdict gradué ────────────────────────────────────────────────────────
     # CORRECTION : 4 niveaux au lieu de 4 seuils mal nommés
     if score >= VERDICT_THRESHOLDS["tres_sincere"]:
-        verdict          = "Très probablement sincère"
+        verdict = "Très probablement sincère"
         confidence_level = "high"
     elif score >= VERDICT_THRESHOLDS["plutot_sincere"]:
-        verdict          = "Plutôt sincère"
+        verdict = "Plutôt sincère"
         confidence_level = "medium"
     elif score >= VERDICT_THRESHOLDS["suspect"]:
-        verdict          = "Signaux de tension détectés"
+        verdict = "Signaux de tension détectés"
         confidence_level = "low"
     else:
-        verdict          = "Tension forte détectée"
+        verdict = "Tension forte détectée"
         confidence_level = "low"
 
     # CORRECTION : "Mensonge probable" remplacé par "Tension forte détectée"
     # — terminologie scientifiquement défendable pour un PFE.
 
     # ── Explication détaillée ─────────────────────────────────────────────────
-    signals_list = [
-        k for k, v in signals_detected.items() if v["detected"]
-    ]
+    signals_list = [k for k, v in signals_detected.items() if v["detected"]]
     if signals_list:
         signals_str = ", ".join(signals_list)
         explanation = (
@@ -157,13 +169,13 @@ def analyze_truth_from_stress_and_emotion(
         )
 
     return {
-        "truth_score":       score,
-        "verdict":           verdict,
-        "confidence_level":  confidence_level,
-        "signals_detected":  signals_detected,
+        "truth_score": score,
+        "verdict": verdict,
+        "confidence_level": confidence_level,
+        "signals_detected": signals_detected,
         "penalties_applied": penalties_applied,
-        "explanation":       explanation,
-        "disclaimer":        _get_disclaimer(),
+        "explanation": explanation,
+        "disclaimer": _get_disclaimer(),
     }
 
 
@@ -185,25 +197,27 @@ def compare_truth_segments(segments_stress: list, emotion_label: str) -> list:
     for seg in segments_stress:
         features = seg.get("features", {})
         analysis = analyze_truth_from_stress_and_emotion(features, emotion_label)
-        results.append({
-            "label":    seg.get("label", "segment"),
-            "start":    seg.get("start", 0),
-            "end":      seg.get("end",   0),
-            "analysis": analysis,
-        })
+        results.append(
+            {
+                "label": seg.get("label", "segment"),
+                "start": seg.get("start", 0),
+                "end": seg.get("end", 0),
+                "analysis": analysis,
+            }
+        )
     return results
 
 
 # ── Résultats standardisés ────────────────────────────────────────────────────
 def _indeterminate_result(reason: str) -> dict:
     return {
-        "truth_score":       None,
-        "verdict":           "Indéterminé",
-        "confidence_level":  "none",
-        "signals_detected":  {},
+        "truth_score": None,
+        "verdict": "Indéterminé",
+        "confidence_level": "none",
+        "signals_detected": {},
         "penalties_applied": {},
-        "explanation":       reason,
-        "disclaimer":        _get_disclaimer(),
+        "explanation": reason,
+        "disclaimer": _get_disclaimer(),
     }
 
 

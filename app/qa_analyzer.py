@@ -4,20 +4,21 @@ from sentence_transformers import SentenceTransformer, util
 
 # ── Chargement du modèle (singleton thread-safe) ──────────────────────────────
 
-_model_lock  = threading.Lock()
+_model_lock = threading.Lock()
 _model_cache: Optional[SentenceTransformer] = None
 
 # ── Seuils de pertinence ──────────────────────────────────────────────────────
 # CORRECTION : déplacés AVANT _get_confidence_level() qui les utilise
 
 THRESHOLDS = {
-    "high":   0.70,
+    "high": 0.70,
     "medium": 0.50,
-    "low":    0.30,
+    "low": 0.30,
 }
 
 
 # ── Fonctions internes ────────────────────────────────────────────────────────
+
 
 def _get_model() -> SentenceTransformer:
     """Retourne le modèle en cache, ou le charge si nécessaire."""
@@ -54,15 +55,16 @@ def _get_confidence_level(similarity_score: float, threshold: float) -> tuple:
 def _error_result(reason: str) -> dict:
     """Résultat d'erreur standardisé."""
     return {
-        "question":         "",
-        "response":         "",
+        "question": "",
+        "response": "",
         "similarity_score": 0.0,
-        "verdict":          "Erreur [X]",
+        "verdict": "Erreur [X]",
         "confidence_level": "none",
-        "explanation":      reason,
-        "is_relevant":      False,
-        "error":            reason,
+        "explanation": reason,
+        "is_relevant": False,
+        "error": reason,
     }
+
 
 # Fonction extraite (suggérée par Sourcery)
 def _compute_similarity(question: str, response: str) -> float:
@@ -77,20 +79,18 @@ def _compute_similarity(question: str, response: str) -> float:
     Returns:
         float : Score de similarité cosinus arrondi à 3 décimales.
     """
-    model      = _get_model()
-    embeddings = model.encode(
-        [question, response],
-        convert_to_tensor=True
-    )
-    return round(
-        float(util.cos_sim(embeddings[0], embeddings[1]).item()), 3
-    )
+    model = _get_model()
+    embeddings = model.encode([question, response], convert_to_tensor=True)
+    return round(float(util.cos_sim(embeddings[0], embeddings[1]).item()), 3)
+
 
 # ── Fonction principale ───────────────────────────────────────────────────────
 
+
 # Fonction principale simplifiée
-def analyze_qa_relevance(question: str, response: str,
-                          threshold: float = THRESHOLDS["medium"]) -> dict:
+def analyze_qa_relevance(
+    question: str, response: str, threshold: float = THRESHOLDS["medium"]
+) -> dict:
     """
     Analyse la pertinence sémantique d'une réponse par rapport à une question.
 
@@ -109,10 +109,7 @@ def analyze_qa_relevance(question: str, response: str,
 
     try:
         # CORRECTION Sourcery : encodage extrait dans _compute_similarity()
-        similarity_score = _compute_similarity(
-            question.strip(),
-            response.strip()
-        )
+        similarity_score = _compute_similarity(question.strip(), response.strip())
 
         verdict, confidence_level, is_relevant = _get_confidence_level(
             similarity_score, threshold
@@ -128,13 +125,13 @@ def analyze_qa_relevance(question: str, response: str,
         )
 
         return {
-            "question":         question.strip(),
-            "response":         response.strip(),
+            "question": question.strip(),
+            "response": response.strip(),
             "similarity_score": similarity_score,
-            "verdict":          verdict,
+            "verdict": verdict,
             "confidence_level": confidence_level,
-            "explanation":      explanation,
-            "is_relevant":      is_relevant,
+            "explanation": explanation,
+            "is_relevant": is_relevant,
         }
 
     except Exception as e:
@@ -143,8 +140,8 @@ def analyze_qa_relevance(question: str, response: str,
 
 # ── Analyse de plusieurs paires Q/R ──────────────────────────────────────────
 
-def analyze_multiple_qa(pairs: list,
-                         threshold: float = THRESHOLDS["medium"]) -> list:
+
+def analyze_multiple_qa(pairs: list, threshold: float = THRESHOLDS["medium"]) -> list:
     """
     Analyse une liste de paires question/réponse.
 
@@ -157,9 +154,7 @@ def analyze_multiple_qa(pairs: list,
     """
     return [
         analyze_qa_relevance(
-            pair.get("question", ""),
-            pair.get("response", ""),
-            threshold
+            pair.get("question", ""), pair.get("response", ""), threshold
         )
         for pair in pairs
     ]
@@ -188,24 +183,30 @@ def get_qa_coherence_score(qa_results: list) -> dict:
     if not valid:
         return {"error": "Aucun resultat valide a analyser."}
 
-    scores         = [r["similarity_score"] for r in valid]
-    mean_sim       = round(sum(scores) / len(scores), 3)
-    relevant       = sum(bool(r.get("is_relevant")) for r in valid)
-    total          = len(valid)
+    scores = [r["similarity_score"] for r in valid]
+    mean_sim = round(sum(scores) / len(scores), 3)
+    relevant = sum(bool(r.get("is_relevant")) for r in valid)
+    total = len(valid)
     relevance_rate = round(relevant / total * 100, 1)
 
     if mean_sim >= THRESHOLDS["high"]:
-        interpretation = "Les reponses sont globalement tres coherentes avec les questions."
+        interpretation = (
+            "Les reponses sont globalement tres coherentes avec les questions."
+        )
     elif mean_sim >= THRESHOLDS["medium"]:
-        interpretation = "Les reponses sont partiellement coherentes — quelques ecarts notables."
+        interpretation = (
+            "Les reponses sont partiellement coherentes — quelques ecarts notables."
+        )
     else:
-        interpretation = "Les reponses presentent une faible coherence avec les questions posees."
+        interpretation = (
+            "Les reponses presentent une faible coherence avec les questions posees."
+        )
 
     return {
         "mean_similarity": mean_sim,
         "coherence_score": mean_sim,
-        "relevant_count":  relevant,
-        "total_count":     total,
-        "relevance_rate":  relevance_rate,
-        "interpretation":  interpretation,
+        "relevant_count": relevant,
+        "total_count": total,
+        "relevance_rate": relevance_rate,
+        "interpretation": interpretation,
     }
