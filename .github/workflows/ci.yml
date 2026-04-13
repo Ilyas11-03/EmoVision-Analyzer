@@ -73,6 +73,8 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run unit tests
+        env:
+         PYTHONPATH: .
         run: |
           pytest tests/ \
             --cov=app \
