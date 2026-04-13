@@ -244,9 +244,9 @@ def detect_emotional_dissonance(
     # Compte les changements de catégorie dans les fenêtres glissantes
     transitions = 0
     total_windows = 0
-
+  
     for i in range(len(categories) - window_size + 1):
-        window = categories[i : i + window_size]
+        window = categories[i:i + window_size]
         # Après (suggestion Sourcery)
         unique = {w for w in window if w != "unknown"}
         if len(unique) >= 2:
@@ -258,12 +258,14 @@ def detect_emotional_dissonance(
     )
 
     if dissonance_score >= 0.7:
-        interpretation = "Dissonance émotionnelle élevée — alternances fréquentes entre états opposés."
-    elif dissonance_score >= 0.4:
-        interpretation = "Dissonance modérée — quelques transitions entre états émotionnels différents."
-    else:
         interpretation = (
-            "Faible dissonance — comportement émotionnel stable et cohérent."
+            "Dissonance émotionnelle élevée — alternances fréquentes "
+            "entre états opposés."
+        )
+    elif dissonance_score >= 0.4:
+        interpretation = (
+            "Dissonance modérée — quelques transitions entre "
+            "états émotionnels différents."
         )
 
     return {

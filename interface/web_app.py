@@ -7,8 +7,8 @@ import streamlit as st
 
 from app.behavior_summary import (
     generate_behavior_summary,
-    get_emotion_distribution_summary,
 )
+from app.emotion_detector import detect_emotions_on_image
 from app.emotion_utils import (
     detect_emotional_dissonance,
     get_emotion_category_breakdown,
@@ -283,7 +283,8 @@ def show_category_breakdown(category_breakdown: dict):
     )
     st.altair_chart(chart, use_container_width=False)
     st.caption(
-        f"Catégorie dominante : **{category_breakdown.get('dominant_category', 'N/A').capitalize()}**"
+        "Catégorie dominante : "
+        f"**{category_breakdown.get('dominant_category', 'N/A').capitalize()}**"
     )
 
 
@@ -427,7 +428,7 @@ def main():
     category_breakdown = get_emotion_category_breakdown(results)
     dissonance = detect_emotional_dissonance(results)
     behavior_summary = generate_behavior_summary(results)
-    dist_summary = get_emotion_distribution_summary(results)
+    # dist_summary = get_emotion_distribution_summary(results)
 
     # Résumé comportemental
     st.subheader("📝 Résumé comportemental")
