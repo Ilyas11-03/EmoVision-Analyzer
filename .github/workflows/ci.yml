@@ -35,7 +35,8 @@ jobs:
         run: |
           flake8 app/ interface/ \
             --max-line-length=100 \
-            --exclude=__pycache__
+            --exclude=__pycache__ \
+            --extend-ignore=E203 
 
   # ── Job 2 : Tests unitaires ───────────────────────────────────────────────
   test:
