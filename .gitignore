@@ -1,1 +1,100 @@
-Dockerfile
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ── Environnements virtuels ───────────────────────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ── Données temporaires et fichiers générés ──────────────────────────────────
+temp_frames/
+*.tmp
+*.log
+*.cache
+
+# ── Données utilisateur et uploads ────────────────────────────────────────────
+data/
+uploads/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wav
+*.mp3
+
+# ── Modèles téléchargés (lourds) ─────────────────────────────────────────────
+models/
+*.h5
+*.pkl
+*.pb
+
+# ── Rapports générés ──────────────────────────────────────────────────────────
+*.pdf
+*.json
+*.csv
+report_summary.csv
+report.json
+report.pdf
+
+# ── Secrets et configuration sensible ────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+config_secret.json
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Garde Dockerfile et docker-compose.yaml, ignore les volumes
+docker_volumes/
+
+# ── Streamlit ─────────────────────────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Jupyter Notebook ──────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── mypy ──────────────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ── Build tools ───────────────────────────────────────────────────────────────
+setup.cfg
+MANIFEST.in
