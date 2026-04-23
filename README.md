@@ -7,7 +7,7 @@ des réponses dans un pipeline multimodal unifié.
 
 ---
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Prérequis](#prérequis)
 - [Installation](#installation)
@@ -21,7 +21,7 @@ des réponses dans un pipeline multimodal unifié.
 
 ---
 
-## ⚙️ Prérequis
+##  Prérequis
 
 - **Python 3.11** — [Télécharger](https://www.python.org/downloads/)
 - **ffmpeg** — Requis pour l'extraction audio
@@ -31,7 +31,7 @@ des réponses dans un pipeline multimodal unifié.
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### 1. Cloner le dépôt
 ```bash
@@ -60,7 +60,7 @@ L'application sera accessible sur `http://localhost:8501`
 
 ---
 
-## 📁 Structure du projet
+## Structure du projet
 ```
 DATA_SCIENSE_LIADTECH/
 │
@@ -93,7 +93,7 @@ DATA_SCIENSE_LIADTECH/
 
 ---
 
-## 📂 Rôle de chaque fichier
+## Rôle de chaque fichier
 
 ### Backend — `app/`
 
@@ -126,7 +126,7 @@ DATA_SCIENSE_LIADTECH/
 
 ---
 
-## 📚 Bibliothèques utilisées
+## Bibliothèques utilisées
 
 ### Interface
 | Bibliothèque | Version | Usage |
@@ -179,9 +179,9 @@ DATA_SCIENSE_LIADTECH/
 
 ---
 
-## ✨ Fonctionnalités
+## Fonctionnalités
 
-### 🎭 Analyse faciale
+### Analyse faciale
 - Détection de **7 émotions primaires** via DeepFace
   (joie, tristesse, colère, peur, dégoût, surprise, neutralité)
 - Calcul de **24 émotions dérivées** par règles heuristiques
@@ -189,28 +189,28 @@ DATA_SCIENSE_LIADTECH/
 - Score de **dissonance émotionnelle** sur fenêtre glissante
 - Résumé comportemental automatique en français
 
-### 🎙️ Analyse vocale
+### Analyse vocale
 - Extraction des features acoustiques : RMS, Pitch, ZCR, MFCCs
 - **Score de stress normalisé** [0.0 – 1.0]
 - Analyse par segment temporel configurable
 
-### 💬 Transcription & Q/R
+### Transcription & Q/R
 - Transcription automatique multilingue via **Whisper**
 - Analyse de pertinence sémantique **Question / Réponse**
 - Verdict gradué à 4 niveaux (très pertinente → hors sujet)
 
-### 🔍 Indicateur de sincérité
+### Indicateur de sincérité
 - Combinaison stress vocal + émotion faciale
 - Disclaimer académique systématique sur les limites
 
-### 📄 Rapports
+### Rapports
 - Export **PDF** (10 sections avec images des frames)
 - Export **CSV** (détail frame par frame)
 - Export **JSON** (données brutes exploitables)
 
 ---
 
-## 🐳 Docker
+## Docker
 ```bash
 # Build
 docker build -t analyse-comportementale .
@@ -221,7 +221,7 @@ docker run -p 8501:8501 analyse-comportementale
 
 ---
 
-## ⚠️ Limites
+## Limites
 
 - Les émotions dérivées sont des **approximations heuristiques**
   non validées sur un corpus annoté
@@ -234,12 +234,12 @@ docker run -p 8501:8501 analyse-comportementale
 
 ---
 
-## 👨‍💻 Auteur
+## Auteur
 
 Projet réalisé dans le cadre d'un **Projet de Fin d'Études (PFE)**
 
 ---
 
-> ⚠️ Ce système est un outil d'aide à l'analyse comportementale.
+>  Ce système est un outil d'aide à l'analyse comportementale.
 > Toute interprétation des résultats doit être réalisée par un
 > professionnel qualifié dans le respect du cadre légal applicable.
