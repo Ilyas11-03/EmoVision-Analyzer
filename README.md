@@ -62,9 +62,10 @@ L'application sera accessible sur `http://localhost:8501`
 
 ## Structure du projet
 ```
-DATA_SCIENSE_LIADTECH/
+EmoVision-Analyzer/
 │
-├── app/                          ← Modules backend
+├── app/                          ← Modules backend (96.7% Python)
+│   ├── __init__.py               ← Package initialization
 │   ├── analyzer.py               ← Pipeline principal
 │   ├── video_processing.py       ← Extraction des frames
 │   ├── emotion_detector.py       ← Détection des émotions faciales
@@ -77,18 +78,31 @@ DATA_SCIENSE_LIADTECH/
 │   └── report_generator.py       ← Génération des rapports
 │
 ├── interface/
+│   ├── __init__.py               ← Package initialization
 │   └── web_app.py                ← Interface Streamlit
 │
-├── temp_frames/                  ← Frames temporaires
-├── uploads/                      ← Vidéos uploadées
-├── data/                         ← Données
-├── models/                       ← Modèles sauvegardés
-├── static/                       ← Fichiers statiques
+├── tests/                        ← Tests unitaires
 │
-├── run.py                        ← Point d'entrée
+├── .github/                      ← Configuration GitHub
+├── .gitignore                    ← Fichiers ignorés
+├── .isort.cfg                    ← Configuration isort
+├── setup.cfg                     ← Configuration setuptools
+├── pytest.ini                    ← Configuration pytest
+│
+├── run.py                        ← Point d'entrée Streamlit
+├── api.py                        ← API REST FastAPI alternative
 ├── requirements.txt              ← Dépendances Python
-├── Dockerfile                    ← Configuration Docker
-└── README.md
+├── Dockerfile                    ← Configuration Docker (3.3%)
+├── docker-compose.yaml           ← Orchestration multi-conteneur
+└── README.md                     ← Cette documentation
+```
+
+### Répertoires d'exécution (générés)
+```
+├── temp_frames/                  ← Frames temporaires (cache)
+├── uploads/                      ← Vidéos uploadées
+├── data/                         ← Données d'entraînement/données brutes
+└── models/                       ← Modèles pré-entraînés (DeepFace, Whisper)
 ```
 
 ---
@@ -116,12 +130,19 @@ DATA_SCIENSE_LIADTECH/
 |---------|------|
 | `web_app.py` | Interface Streamlit — upload vidéo, visualisations interactives, téléchargement des rapports |
 
+### API Alternative
+
+| Fichier | Rôle |
+|---------|------|
+| `api.py` | API REST FastAPI — endpoints pour l'analyse sans interface web |
+
 ### Racine
 
 | Fichier | Rôle |
 |---------|------|
 | `run.py` | Point d'entrée — lance l'application Streamlit |
-| `Dockerfile` | Configuration pour déploiement Docker |
+| `Dockerfile` | Configuration Docker (3.3%) — conteneurisation de l'application |
+| `docker-compose.yaml` | Orchestration multi-conteneur pour déploiement simplifié |
 | `requirements.txt` | Liste des dépendances Python |
 
 ---
@@ -210,13 +231,30 @@ DATA_SCIENSE_LIADTECH/
 
 ---
 
-## Docker
+## Lancement
+
+### Mode Streamlit
+```bash
+python run.py
+```
+Accessible sur `http://localhost:8501`
+
+### Mode API REST
+```bash
+python api.py
+```
+Endpoints disponibles sur `http://localhost:8000`
+
+### Docker
 ```bash
 # Build
-docker build -t analyse-comportementale .
+docker build -t emovision-analyzer .
 
 # Lancer
-docker run -p 8501:8501 analyse-comportementale
+docker run -p 8501:8501 emovision-analyzer
+
+# Avec docker-compose
+docker-compose up
 ```
 
 ---
@@ -231,6 +269,45 @@ docker run -p 8501:8501 analyse-comportementale
   présence d'une piste audio exploitable
 - Le système est un **outil d'aide à l'analyse** destiné à un
   professionnel qualifié
+
+---
+
+## Architecture Technique
+
+### Pipeline de traitement
+
+```
+Vidéo Input
+    ↓
+[Video Processing] → Frame extraction + metadata
+    ↓
+    ├─→ [Emotion Detector] → Frame emotions (7 primaires)
+    │       ↓
+    │   [Emotion Utils] → Statistics agrégées
+    │       ↓
+    │   [Behavior Summary] → Résumé textuel FR
+    │
+    ├─→ [Audio Extraction] → ffmpeg → WAV
+    │       ↓
+    │   [Stress Analysis] → Acoustic features
+    │       ↓
+    │   [Speech to Text] → Whisper transcription
+    │       ↓
+    │   [Truth Detector] → Sincérité score
+    │
+    └─→ [QA Analyzer] → Cohérence sémantique
+    
+    ↓
+[Report Generator]
+    ├─→ PDF (10 sections + visualisations)
+    ├─→ CSV (détail par frame)
+    └─→ JSON (données brutes)
+```
+
+### Composition du répertoire
+
+- **Python**: 96.7% (core logic)
+- **Dockerfile**: 3.3% (containerization)
 
 ---
 
